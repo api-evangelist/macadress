@@ -1,0 +1,90 @@
+generated: '2026-08-28'
+method: searched
+source: https://macadress.com/pricing
+docs:
+- https://macadress.com/pricing
+- https://macadress.com/docs
+currency: USD
+billing_period: month
+plan_count: 4
+note: >
+  Published, self-serve pricing with real numbers on every tier; only the self-hosted
+  licence is a "contact us" motion, and even that names a starting price. Quota is a
+  rolling 30-day cycle from signup, NOT a calendar month (stated on /docs). A batch call
+  bills per address actually resolved, not per HTTP request; a vendor search bills as one
+  lookup. Free stops hard at quota; paid tiers get a 20% grace buffer, and grace consumed
+  is carried into the next cycle as a smaller starting budget rather than billed.
+launch_offer:
+  description: 'Product Hunt launch offer: 10,000 free lookups for the first 30 days on the Free plan, no card.'
+  ends: '2026-09-08'
+  captured: '2026-08-28'
+plans:
+- name: Free
+  price: 0
+  currency: USD
+  period: month
+  audience: Prototypes, personal projects, one-off scripts.
+  quota:
+    lookups_per_cycle: 1000
+    cycle: rolling 30 days from signup
+    overage_grace: none
+    paused_at: 1000
+  limits:
+    requests_per_minute: 30
+  features:
+  - Full response, every field
+  - Batch endpoint included
+  - Community support
+- name: Growth
+  price: 19
+  currency: USD
+  period: month
+  audience: Production apps, dashboards, internal tools.
+  quota:
+    lookups_per_cycle: 100000
+    cycle: rolling 30 days from signup
+    overage_grace: 20%
+    paused_at: 120000
+  limits:
+    requests_per_minute: 120
+  features:
+  - Batch endpoint, higher concurrency
+  - Email support
+- name: Scale
+  price: 79
+  currency: USD
+  period: month
+  audience: High-QPS network tooling and security platforms.
+  quota:
+    lookups_per_cycle: 1000000
+    cycle: rolling 30 days from signup
+    overage_grace: 20%
+    paused_at: 1200000
+  limits:
+    requests_per_minute: 600
+  sla: 99.9% uptime
+  features:
+  - 99.9% uptime SLA
+  - Priority support
+- name: Self-hosted
+  price: 999
+  price_qualifier: starting at, per deployment
+  currency: USD
+  period: year
+  contact_required: true
+  audience: >
+    Network access control, IoT fleet management and MDM vendors; air-gapped and
+    compliance-sensitive environments where MAC addresses must not leave the network.
+  quota:
+    lookups_per_cycle: unlimited
+  limits:
+    requests_per_minute: null
+    note: No rate limit beyond the operator's own hardware.
+  features:
+  - The API binary and the IEEE sync engine, licensed to run on your own infrastructure
+  - Installable via .deb package
+  - Scheduled IEEE registry updates, same sync engine the hosted service runs
+  - No third-party API in the request path, no per-query billing
+positioning:
+  - 'Paid tiers buy volume, not features: randomization confidence, IEEE 802c SLAP classification and EUI-64/IPv6 derivation are on every plan including Free.'
+  - 'Every plan requires an API key; only the browser web tool at macadress.com is account-free.'

@@ -1,0 +1,21 @@
+generated: '2026-08-28'
+method: generated
+source: >-
+  Packaged Agent Skills generated from openapi/macadress-openapi.yaml and the provider's
+  own documentation at https://macadress.com/docs. Every operationId cited in a skill was
+  read verbatim from that spec; cross-cutting rules cite ../conventions/, ../errors/,
+  ../rate-limits/, ../authentication/ and ../vocabulary/. No provider-published skills or
+  AGENTS.md were found (searched macadress.com; /.well-known/* carries only security.txt).
+skills:
+- file: macadress-enrich-mac-inventory.md
+  name: Enrich a MAC address inventory
+  api: openapi/macadress-openapi.yaml
+  operations: [healthz, lookupMACBatch, lookupMAC]
+- file: macadress-triage-randomized-and-virtual-addresses.md
+  name: Triage randomized and virtual MAC addresses
+  api: openapi/macadress-openapi.yaml
+  operations: [lookupMAC, lookupMACBatch]
+- file: macadress-audit-vendor-footprint.md
+  name: Audit a vendor's registered MAC block footprint
+  api: openapi/macadress-openapi.yaml
+  operations: [searchVendors, lookupMAC]

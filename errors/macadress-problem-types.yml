@@ -1,0 +1,101 @@
+generated: '2026-08-28'
+method: derived
+source: openapi/macadress-openapi.yaml
+enriched_from: https://macadress.com/docs
+format: custom-json
+rfc9457: false
+content_type: application/json
+note: >
+  Derived from every 4xx/5xx response declared in the published OpenAPI, then enriched with
+  the exact error strings the provider publishes on its docs page. There is no
+  application/problem+json anywhere on this surface and no stable machine-readable error
+  code: the discriminating signal is the HTTP status plus, for 429, the prose. Two
+  materially different failures share status 429 (per-minute rate limit vs. cycle quota)
+  and need different remediation, so an agent that branches on status alone will retry a
+  quota exhaustion that will not clear until the cycle renews.
+envelope:
+  parse_failure: '{"valid": false, "error": "<message>", "request_id": "<uuid>"}'
+  other_failures: '{"error": "<message>"}'
+  request_id_present_on_errors: true
+  headers_on_errors:
+  - X-Request-Id
+  - X-Data-Version
+problem_types:
+- id: invalid-mac
+  status: 400
+  title: Input did not parse as a MAC address
+  schema: components.schemas.ParseErrorBody
+  operations: [lookupMAC]
+  example: '{"valid": false, "error": "invalid MAC address", "request_id": "19ee676c-4410-443f-813e-3bbb3433b4bf"}'
+  remediation: >
+    Normalize the address before sending. Colons, hyphens, spaces, Cisco dot-grouping and
+    bare hex are all accepted and case does not matter, so a 400 means the value is not 12
+    hex digits at all.
+  retryable: false
+  source: https://macadress.com/docs
+- id: malformed-batch
+  status: 400
+  title: Malformed request body, empty macs array, or more than 100 entries
+  schema: components.schemas.ParseErrorBody
+  operations: [lookupMACBatch]
+  remediation: Send a JSON object with a non-empty `macs` array of at most 100 strings.
+  retryable: false
+  note: >
+    A batch of valid shape does NOT 400 on bad members: an unparseable address inside a
+    well-formed batch comes back as a per-item {"error": "invalid MAC address"} in results,
+    with valid false. Only the envelope itself can 400.
+- id: missing-api-key
+  status: 401
+  title: Missing or invalid API key
+  schema: components.responses.Unauthorized
+  operations: [lookupMAC, lookupMACBatch, searchVendors]
+  example: '{"error": "missing API key: pass it as \"api_key\" (query param or POST body) or an Authorization: Bearer header"}'
+  observed_live: '2026-08-28 GET https://api.macadress.com/v1/mac/00:03:93:AB:12:34 -> 401'
+  remediation: >
+    Present the key as an Authorization Bearer header (preferred), an api_key query
+    parameter, or an api_key body field on the batch endpoint. Keys are issued instantly
+    at https://macadress.com/signup.
+  retryable: false
+- id: rate-limit-exceeded
+  status: 429
+  title: Requests-per-minute limit exceeded for the authenticated plan
+  schema: components.responses.RateLimited
+  operations: [lookupMAC, lookupMACBatch, searchVendors]
+  example: '{"error": "rate limit exceeded: 30 requests/minute on the free plan"}'
+  remediation: >
+    Back off and retry. Read X-RateLimit-Reset (seconds until the sliding window clears);
+    no Retry-After header is sent. The window is rolling, not a clock minute.
+  retryable: true
+  source: https://macadress.com/docs
+- id: quota-exceeded
+  status: 429
+  title: Cycle lookup quota exhausted
+  schema: components.responses.RateLimited
+  operations: [lookupMAC, lookupMACBatch, searchVendors]
+  example_free: '{"error": "quota exceeded: 1000 lookups on the free plan this cycle, upgrade at /pricing for more"}'
+  example_paid: '{"error": "quota exceeded: used your 100000-lookup growth plan quota plus its 20% grace buffer this cycle, resets at renewal"}'
+  remediation: >
+    NOT retryable in-window. The account is paused until the rolling 30-day cycle renews
+    or the plan is upgraded. Distinguish it from a rate limit by the word "quota" in the
+    error string, since both return 429 and no distinct code is emitted.
+  retryable: false
+  source: https://macadress.com/docs
+  gap: Shares status 429 with rate-limit-exceeded and carries no machine-readable discriminator.
+- id: database-unreachable
+  status: 503
+  title: Database unreachable
+  operations: [healthz]
+  example: '{"error": "<message>"}'
+  remediation: Provider-side dependency failure; retry after a delay.
+  retryable: true
+per_item_errors:
+  operations: [lookupMACBatch]
+  shape: '{"input": "<as submitted>", "error": "invalid MAC address", "mac": "", "valid": false, ...}'
+  note: >
+    components.schemas.BatchItem adds `input` and an optional `error` to the standard
+    Result. Per-item failures return HTTP 200 at the envelope level and bill normally.
+coverage:
+  operations_in_spec: 4
+  operations_with_4xx_declared: 3
+  operations_with_5xx_declared: 1
+  distinct_problem_types: 6

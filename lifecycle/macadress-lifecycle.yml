@@ -1,0 +1,135 @@
+generated: '2026-08-28'
+method: searched
+source: https://macadress.com/docs
+derived_from:
+- openapi/macadress-openapi.yaml
+docs:
+- https://macadress.com/docs
+- https://macadress.com/pricing
+- https://macadress.com/data-sources
+versioning:
+  scheme: path
+  current_version: v1
+  spec_version: '1.0'
+  in_response: meta.api_version
+  policy: >
+    Stated in the OpenAPI info.description and enforced through a per-property
+    x-added-in-version extension: "Every field on the lookup response beyond the original
+    v1 set is additive and nullable: existing integrations reading only the original fields
+    are unaffected by new ones appearing alongside them." Fields added after the original
+    v1 shape carry x-added-in-version "1.1" in the contract itself, so a consumer can diff
+    the additions without a changelog.
+  additive_fields_1_2:
+  - local_vendor_derivation
+  additive_fields_1_1:
+  - matched_prefix
+  - prefix_length
+  - registry
+  - device
+  - virtualization
+  - special_use
+  - vendor_location
+  - randomization
+  - assignment
+  - vendor
+  - meta
+  observed_spec_churn:
+    note: >
+      The published spec CHANGED UNDER US mid-enrichment. Fetched twice on 2026-08-28,
+      roughly seven minutes apart, from the identical URL
+      https://macadress.com/static/openapi.yaml?v=ceee2d51 — 16,815 bytes at 10:27 UTC and
+      19,485 bytes at 10:34 UTC. The addition is a new x-added-in-version "1.2" object,
+      local_vendor_derivation, plus its entry in Result.required. The repo holds the later
+      copy. Two things follow: the additive-versioning policy is genuinely being exercised
+      (a 1.2 field appeared additively and nullable, exactly as info.description promises),
+      and the ?v=ceee2d51 cache-buster in the URL is NOT a content hash — it stayed
+      identical across a real content change, so a consumer pinning that URL has no way to
+      tell the contract moved. There is no changelog to consult either.
+    fetched:
+    - time: '2026-08-28T10:27Z'
+      bytes: 16815
+    - time: '2026-08-28T10:34Z'
+      bytes: 19485
+      saved: true
+deprecation:
+  policy_page: null
+  policy_stated_in: openapi/macadress-openapi.yaml (info.description) and https://macadress.com/docs
+  sunset_header: false
+  deprecation_header: false
+  rfc8594: false
+  deprecated_items:
+  - kind: field
+    name: is_private
+    location: components.schemas.Result.properties.is_private
+    marked: 'deprecated: true'
+    replacement: 'Use organization === null together with vendor_lookup_reliable instead.'
+    removal_date: null
+    docs: https://macadress.com/docs
+  note: >
+    A real, published deprecation practice but not a standalone deprecation policy page.
+    One field is machine-marked deprecated in the contract with the replacement named in
+    the same description, and the backward-compatibility rule for additions is stated in
+    info.description. There is no removal date, no Sunset/Deprecation response header, and
+    no RFC 8594 posture. No operation is deprecated; the whole surface is v1.
+status_page:
+  present: false
+  probed:
+  - url: https://macadress.com/status
+    status: 404
+  liveness_endpoint:
+    operationId: healthz
+    url: https://api.macadress.com/v1/healthz
+    auth_required: false
+    counted_against_quota: false
+    observed: '2026-08-28 -> 200 {"status":"ok"}'
+  note: >
+    No hosted status page and no incident history. The provider instead ships an
+    unauthenticated, unmetered liveness endpoint and documents it as the thing to poll
+    ("For uptime checks"). That is a monitoring hook, not a status page: it tells a caller
+    whether the database is reachable right now, and nothing about past or planned
+    downtime.
+sla:
+  published: true
+  source: https://macadress.com/pricing
+  terms:
+  - plan: Scale
+    uptime: 99.9%
+  - plan: Growth
+    uptime: null
+  - plan: Free
+    uptime: null
+  note: A 99.9% uptime SLA is offered on the Scale tier only; no credit schedule is published.
+changelog:
+  present: false
+  probed:
+  - url: https://macadress.com/changelog
+    status: 404
+  note: >
+    No dated changelog anywhere on the site. The nearest substitute is the
+    x-added-in-version extension inside the OpenAPI, which records WHICH fields were added
+    after v1 but not WHEN. No ChangeLog pointer is emitted for this provider.
+roadmap:
+  present: false
+  probed:
+  - url: https://macadress.com/roadmap
+    status: 404
+data_lifecycle:
+  source: IEEE MA-L / MA-M / MA-S / IAB / CID registries
+  sync_frequency: twice daily
+  freshness_signal: X-Data-Version response header and meta.database_version
+  observed_data_version: '2026-08-28'
+  docs: https://macadress.com/data-sources
+  note: >
+    The data has a documented lifecycle even though the API does not have a documented
+    release cadence. Every response dates its own underlying snapshot, and the static
+    downloads at /downloads are rebuilt from the live registry twice a day.
+support:
+  channels:
+  - plan: Free
+    channel: Community support
+  - plan: Growth
+    channel: Email support
+  - plan: Scale
+    channel: Priority support
+  contact: https://macadress.com/contact
+  security_contact: mailto:hello@macadress.com

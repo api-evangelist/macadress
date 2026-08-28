@@ -1,14 +1,38 @@
 name: 'MAC Address Lookup: Find Vendor, OUI & Device Type'
-description: >-
-  REST/JSON API, hosted MCP server, and reference data for MAC address / OUI lookup — resolving vendor, IEEE
-  registration block, device category, and randomization confidence. Data synced twice daily from IEEE
-  MA-L/MA-M/MA-S/IAB/CID registries. Operated by ApisOS FZE (macadress.com).
-url: >-
-  https://raw.githubusercontent.com/api-evangelist/mac-address-lookup-find-vendor-oui-amp-device-type/refs/heads/main/apis.yml
+aid: macadress
+description: REST/JSON API, hosted MCP server, and reference data for MAC address / OUI lookup — resolving vendor, IEEE registration
+  block, device category, and randomization confidence. Data synced twice daily from IEEE MA-L/MA-M/MA-S/IAB/CID registries.
+  Operated by ApisOS FZE (macadress.com).
+url: https://raw.githubusercontent.com/api-evangelist/mac-address-lookup-find-vendor-oui-amp-device-type/refs/heads/main/apis.yml
 created: '2026-08-28'
 modified: '2026-08-28'
 specificationVersion: '0.21'
 tags:
+- Networking
+- Network Access Control
+- Security
+- SecOps
+- IoT
+- Device Fleet Management
+- MDM
+- Reference Data
+- IEEE OUI Lookup
+- Developer Tools
+- MCP
+- Agent-Native
+apis:
+- name: macadress.com API
+  description: 'REST/JSON API for single and batch MAC/OUI lookups, vendor directory search, and health checks. Requires a
+    free API key via Authorization Bearer or api_key query/body.
+
+
+    Live API at api.macadress.com: GET /v1/mac/:mac and POST /v1/mac/batch, answering 401 with an explicit "missing API key"
+    message. Operated by ApisOS FZE. The declared apis.json 404s, but an OpenAPI 3.1.0 IS published -- at macadress.com/static/openapi.yaml?v=ceee2d51,
+    a versioned asset path that probing the conventional locations never finds. llms.txt is served and is where the real endpoints
+    and the MCP subdomain are named. Verified 2026-08-28.'
+  humanURL: https://macadress.com/docs
+  baseURL: https://api.macadress.com
+  tags:
   - Networking
   - Network Access Control
   - Security
@@ -21,40 +45,110 @@ tags:
   - Developer Tools
   - MCP
   - Agent-Native
-apis:
-  - name: macadress.com API
-    description: >-
-      REST/JSON API for single and batch MAC/OUI lookups, vendor directory search, and health checks. Requires a free
-      API key via Authorization Bearer or api_key query/body.
-    humanURL: https://macadress.com/docs
-    baseURL: https://api.macadress.com
-    tags:
-      - Networking
-      - Network Access Control
-      - Security
-      - SecOps
-      - IoT
-      - Device Fleet Management
-      - MDM
-      - Reference Data
-      - IEEE OUI Lookup
-      - Developer Tools
-      - MCP
-      - Agent-Native
-    properties:
-      - type: OpenAPI
-        url: https://macadress.com/static/openapi.yaml?v=ceee2d51
-      - type: Documentation
-        url: https://macadress.com/docs
-      - type: LLMsTxt
-        url: https://macadress.com/llms.txt
-      - type: MCPServer
-        url: https://mcp.macadress.com/mcp
+  properties:
+  - type: OpenAPI
+    url: openapi/macadress-openapi.yaml
+    description: 'Saved verbatim from https://macadress.com/static/openapi.yaml?v=ceee2d51 (HTTP 200, application/yaml). OpenAPI
+      3.1.0, four operations, all with operationId, summary, declared 2xx/4xx responses and reusable components. NOTE: the
+      same URL served two different documents seven minutes apart on 2026-08-28 (a new x-added-in-version 1.2 field appeared);
+      the ?v= token did not change, so it is not a content hash. This repo holds the later copy. See lifecycle/macadress-lifecycle.yml.'
+  - type: Documentation
+    url: https://macadress.com/docs
+  - type: LLMsTxt
+    url: https://macadress.com/llms.txt
+  - type: MCPServer
+    url: https://mcp.macadress.com/mcp
+    description: The endpoint is on the mcp. SUBDOMAIN. macadress.com/mcp is the documentation page and answers 405 to POST
+      -- probing it as the endpoint reads as absence. Streamable HTTP, stateless; returns 401 "no bearer token" unauthenticated,
+      i.e. present and gated. Verified 2026-08-28.
+  - type: Overlay
+    url: overlays/macadress-openapi-overlay.yaml
+  - type: APIReference
+    url: https://macadress.com/docs
+  - type: Examples
+    url: examples/macadress-lookup-mac-example.json
+    description: 'Five request/response pairs: three transcribed verbatim from the provider docs, two observed live on 2026-08-28
+      (the unmetered healthz 200 and the unauthenticated 401 envelope).'
 maintainers:
-  - FN: ApisOS FZE
-    url: https://macadress.com
+- FN: ApisOS FZE
+  url: https://macadress.com
+  email: hello@macadress.com
 generated:
   by: apis.io/add
   model: claude-opus-4-8
   confidence: 98
   at: '2026-08-28T08:50:06.984Z'
+common:
+- type: VulnerabilityDisclosure
+  url: security/macadress-vulnerability-disclosure.yml
+- type: DomainSecurity
+  url: security/macadress-domain-security.yml
+- type: Authentication
+  url: authentication/macadress-authentication.yml
+- type: Packages
+  url: packages/macadress-packages.yml
+  description: 'Four first-party distributions: a Splunkbase add-on (TA-macadress 1.0.0, 2026-08-23), a MISP expansion module
+    merged upstream 2026-08-24, an iTop/TeemIp extension whose GitHub link 404s, and a licensed .deb of the self-hosted server.
+    No client SDK exists in any language and the provider says so on purpose, so no SDKs pointer is emitted.'
+- type: WellKnown
+  url: well-known/macadress-well-known.yml
+- type: SecurityTxt
+  url: well-known/macadress-security.txt
+  description: RFC 9116 security.txt served at https://macadress.com/.well-known/security.txt (HTTP 200). Saved verbatim.
+- type: ToolCrosswalk
+  url: mcp/macadress-tool-crosswalk.yml
+  description: Binds each of the four published MCP tools to its backing OpenAPI operationId. Three bind 1:1; get_vendor_block
+    has no REST equivalent; healthz and the documented-but-unspecified POST /v1/mac/extract have no tool.
+- type: AgentSkill
+  url: skills/_index.yml
+- type: Conventions
+  url: conventions/macadress-conventions.yml
+  description: 'Read-only surface: idempotency, dry-run and reversibility are all na rather than absent, because no operation
+    mutates provider state.'
+- type: Lifecycle
+  url: lifecycle/macadress-lifecycle.yml
+- type: Deprecation
+  url: lifecycle/macadress-lifecycle.yml
+  description: Additive-and-nullable compatibility policy stated in the OpenAPI info.description and enforced through a per-property
+    x-added-in-version extension, plus one field (is_private) machine-marked deprecated:true with its replacement named. No
+    standalone policy page, no Sunset/Deprecation headers, no removal date.
+- type: ErrorCatalog
+  url: errors/macadress-problem-types.yml
+- type: Conformance
+  url: conformance/macadress-conformance.yml
+- type: DataModel
+  url: data-model/macadress-data-model.yml
+- type: Vocabulary
+  url: vocabulary/macadress-vocabulary.yml
+  description: Sixteen closed enums declared in the contract itself — IEEE block types, 802c SLAP quadrants, a 24-term device
+    taxonomy, and four separate graded confidence scales.
+- type: RateLimits
+  url: rate-limits/macadress-rate-limits.yml
+- type: Plans
+  url: plans/macadress-plans-pricing.yml
+- type: AgenticAccess
+  url: agentic-access/macadress-agentic-access.yml
+- type: Security
+  url: security/macadress-vulnerability-disclosure.yml
+  description: Security contact published via RFC 9116 security.txt (Contact, Expires 2027-08-22, Canonical, Preferred-Languages).
+    No bug bounty, no separate disclosure policy page.
+- type: DeveloperPortal
+  url: https://macadress.com/mac-address-api
+- type: Support
+  url: https://macadress.com/contact
+- type: Pricing
+  url: https://macadress.com/pricing
+- type: SignUp
+  url: https://macadress.com/signup
+- type: Login
+  url: https://macadress.com/login
+- type: TermsOfService
+  url: https://macadress.com/terms
+- type: PrivacyPolicy
+  url: https://macadress.com/privacy
+image: https://macadress.com/static/og-image.png
+x-enrichment:
+  date: '2026-08-28'
+  status: enriched
+  artifacts_added: 29
+  pass: local-v1

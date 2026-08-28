@@ -1,0 +1,168 @@
+generated: '2026-08-28'
+method: derived
+source: openapi/macadress-openapi.yaml
+enriched_from:
+- https://macadress.com/docs
+- https://macadress.com/data-sources
+- https://macadress.com/downloads
+- https://macadress.com/mcp
+note: >
+  Cross-cutting web-API standards are mostly NOT claimed here, and the honest reading is
+  that this is a small key-auth read API that never needed them. What it does have is a
+  strong DOMAIN-standard signature: the contract itself speaks IEEE registry vocabulary
+  (MA-L/MA-M/MA-S/IAB/CID), IEEE 802c SLAP quadrants, RFC 4291 EUI-64/link-local
+  derivation and ISO 3166-1 alpha-2 country codes as typed enums rather than free text,
+  and the provider republishes the dataset in the de-facto interchange formats of the
+  tools in its market (Wireshark manuf, nmap-mac-prefixes, Cisco vendorMacs.xml).
+cross_cutting:
+- id: oauth2
+  conforms: false
+  evidence: >
+    No oauth2 securityScheme in the OpenAPI; both schemes are key-based (http bearer,
+    apiKey in query). /.well-known/oauth-authorization-server 404s on all three hosts. The
+    provider states on https://macadress.com/mcp that it deliberately did not implement
+    MCP's optional OAuth 2.1 authorization server.
+- id: oidc
+  conforms: false
+  evidence: /.well-known/openid-configuration returns 404 on macadress.com, api.macadress.com and mcp.macadress.com.
+- id: rfc9457
+  conforms: false
+  evidence: >
+    Error responses are declared as application/json with a bespoke {"error": string}
+    envelope (components.responses.Unauthorized / RateLimited,
+    components.schemas.ParseErrorBody). No problem+json media type, no type/title/detail
+    members.
+- id: rfc9116
+  conforms: true
+  evidence: >
+    https://macadress.com/.well-known/security.txt returns 200 with Contact, Expires,
+    Canonical and Preferred-Languages fields. Saved verbatim to
+    well-known/macadress-security.txt.
+- id: rfc6750
+  conforms: true
+  evidence: >
+    Bearer token in the Authorization header is the documented primary transport
+    (components.securitySchemes.apiKeyHeader, type http scheme bearer). The token is a
+    static API key rather than an OAuth access token, and no WWW-Authenticate challenge is
+    returned on the 401.
+- id: rfc8594
+  conforms: false
+  evidence: No Sunset or Deprecation response headers declared or documented; see lifecycle/macadress-lifecycle.yml.
+- id: idempotency
+  conforms: na
+  evidence: >
+    Read-only surface; no idempotency key header exists because no operation mutates
+    state. See conventions/macadress-conventions.yml.
+- id: pagination
+  conforms: partial
+  evidence: >
+    searchVendors takes limit (default 10, max 50) and returns total plus blocks, but
+    there is no offset or cursor, so results beyond the first 50 of a ~58,000-block match
+    are unreachable through the API. The full dataset is offered as static downloads
+    instead.
+- id: json:api
+  conforms: false
+  evidence: Plain JSON object responses; no data/attributes/relationships envelope, no application/vnd.api+json.
+- id: odata
+  conforms: false
+  evidence: No $metadata surface, no OData query options.
+- id: scim
+  conforms: false
+  evidence: No identity provisioning surface; no urn:ietf:params:scim:schemas URNs in the contract.
+- id: fhir
+  conforms: false
+  evidence: Not a healthcare API.
+- id: mcp
+  conforms: true
+  evidence: >
+    Hosted Model Context Protocol server at https://mcp.macadress.com/mcp, Streamable HTTP
+    transport, stateless. Probed 2026-08-28: POST tools/list returns 401 "no bearer token",
+    i.e. a live gated MCP endpoint. Four tools published at https://macadress.com/mcp.
+    Authorization is the spec-optional bearer form rather than MCP's OAuth 2.1 profile.
+- id: openapi-3.1
+  conforms: true
+  evidence: >
+    openapi/macadress-openapi.yaml declares openapi 3.1.0, four operations, all with
+    operationId, summary, tags-free but uniquely identified, declared 2xx/4xx responses,
+    reusable components.schemas/responses/headers, and securitySchemes both defined and
+    applied at the document level with a per-operation override (security [] on healthz).
+- id: content-signal
+  conforms: true
+  evidence: >
+    https://macadress.com/robots.txt (200) carries "Content-Signal: search=yes,
+    ai-input=yes, ai-train=no" plus explicit named Allow blocks for GPTBot, ChatGPT-User,
+    ClaudeBot, anthropic-ai, Google-Extended, PerplexityBot and CCBot. A machine-readable
+    AI-consent posture: inference-time retrieval permitted, training refused.
+- id: llmstxt
+  conforms: true
+  evidence: https://macadress.com/llms.txt returns 200, 4,890 bytes, real llms.txt structure. Saved to llms/macadress-llms.txt.
+domain_standards:
+- id: ieee-oui-registry
+  name: IEEE MA-L / MA-M / MA-S / IAB / CID registration blocks
+  conforms: true
+  evidence:
+    spec_location: components.schemas.VendorBlock.properties.block_type and components.schemas.Result.properties.block_type
+    detail: >
+      block_type is a closed enum [MA-L, MA-M, MA-S, IAB, CID] — the IEEE Registration
+      Authority's own assignment classes — and mask_bits is a closed enum [24, 28, 36]
+      matching those classes' prefix widths. prefix_length in the lookup Result carries the
+      same three widths. The API models the registry's structure, not a flattened
+      "first three octets" approximation, which is what separates it from a bare OUI lookup.
+    docs: https://macadress.com/data-sources
+- id: ieee-802c-slap
+  name: IEEE 802c Structured Local Address Plan
+  conforms: true
+  evidence:
+    spec_location: components.schemas.Result.properties.slap_quadrant
+    detail: 'Closed enum [AAI, ELI, reserved, SAI, null] — the four 802c SLAP quadrants — populated only for locally administered addresses.'
+    docs: https://macadress.com/docs
+- id: ieee-802-addressing-bits
+  name: IEEE 802 I/G and U/L address bits
+  conforms: true
+  evidence:
+    spec_location: components.schemas.Result.properties.transmission_type and .administration_type
+    detail: >
+      transmission_type is a closed enum [unicast, multicast, broadcast] read from the I/G
+      bit; administration_type is [universally_administered, locally_administered] read
+      from the U/L bit. Both are typed, not prose.
+- id: rfc4291-eui64
+  name: RFC 4291 modified EUI-64 / IPv6 link-local derivation
+  conforms: true
+  evidence:
+    spec_location: components.schemas.Result.properties.eui64 and .ipv6_link_local
+    detail: >
+      The contract returns the modified EUI-64 and the SLAAC-derived fe80:: link-local
+      address for unicast inputs, and documents both as mathematical derivations from the
+      input rather than confirmation the device uses them.
+    docs: https://macadress.com/docs
+- id: iso-3166-1-alpha-2
+  name: ISO 3166-1 alpha-2 country codes
+  conforms: true
+  evidence:
+    spec_location: components.schemas.Result.properties.country, .vendor_location.country_code, and the searchVendors `country` query parameter
+    detail: 'Country is typed as an exact ISO 3166-1 alpha-2 code on both input (filter) and output, e.g. US, DE, JP.'
+- id: tool-interchange-formats
+  name: Wireshark manuf, nmap-mac-prefixes, Cisco vendorMacs.xml
+  conforms: true
+  evidence:
+    location: https://macadress.com/downloads
+    detail: >
+      The vendor database is republished as drop-in replacements for Wireshark's manuf file
+      and nmap's nmap-mac-prefixes file, plus Cisco's vendorMacs.xml schema, alongside CSV
+      and JSON. These are the de-facto interchange formats of this market's tooling: a
+      consumer who already speaks them integrates with no bespoke connector. Rebuilt from
+      the live registry twice daily.
+    docs: https://macadress.com/learn
+certifications:
+  published: false
+  probed:
+  - url: https://macadress.com/trust
+    status: 404
+  - url: https://macadress.com/security
+    status: 404
+  note: >
+    No SOC 2, ISO 27001, PCI, HIPAA or FedRAMP claim anywhere on the site, and no trust
+    center. No Compliance pointer is emitted. The compliance-adjacent story the provider
+    does tell is architectural rather than certified: a self-hosted licence so MAC
+    addresses never leave the customer's network, pitched at air-gapped and
+    compliance-sensitive environments (https://macadress.com/pricing).

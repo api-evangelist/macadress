@@ -1,0 +1,135 @@
+generated: '2026-08-28'
+method: derived
+source: openapi/macadress-openapi.yaml
+enriched_from: https://macadress.com/docs
+note: >
+  Every controlled term below is a closed enum declared in the provider's own OpenAPI, not
+  a list we invented. This provider is unusually enum-heavy for its size: the judgments it
+  makes (device class, confidence, randomization, virtualization) are typed vocabularies
+  rather than free-text prose, which is what makes the answers machine-comparable.
+vocabularies:
+- name: DeviceCategory
+  spec_location: components.schemas.DeviceCategory
+  closed: true
+  count: 24
+  default: unknown
+  definition: >
+    Controlled taxonomy for the inferred class of device behind an address. "unknown" when
+    the vendor is too broad or no vendor profile exists in the deployment's dataset; the
+    provider states that most registered organizations fall there today.
+  terms:
+  - computer
+  - smartphone
+  - tablet
+  - router
+  - switch
+  - wireless_access_point
+  - firewall
+  - server
+  - storage
+  - printer
+  - camera
+  - smart_tv
+  - media_device
+  - gaming_console
+  - iot
+  - embedded_device
+  - industrial
+  - medical
+  - automotive
+  - virtual_machine
+  - container
+  - network_interface
+  - consumer_electronics
+  - unknown
+- name: BlockType
+  spec_location: components.schemas.VendorBlock.properties.block_type
+  closed: true
+  count: 5
+  standard: IEEE Registration Authority assignment classes
+  terms:
+  - MA-L
+  - MA-M
+  - MA-S
+  - IAB
+  - CID
+- name: MaskBits
+  spec_location: components.schemas.VendorBlock.properties.mask_bits
+  closed: true
+  terms: [24, 28, 36]
+  definition: Prefix width of the matched registry block. 24 for MA-L/IAB/CID, 28 for MA-M, 36 for MA-S.
+- name: SlapQuadrant
+  spec_location: components.schemas.Result.properties.slap_quadrant
+  closed: true
+  standard: IEEE 802c Structured Local Address Plan
+  terms: [AAI, ELI, reserved, SAI]
+- name: TransmissionType
+  spec_location: components.schemas.Result.properties.transmission_type
+  closed: true
+  derived_from: IEEE 802 I/G bit
+  terms: [unicast, multicast, broadcast]
+- name: AdministrationType
+  spec_location: components.schemas.Result.properties.administration_type
+  closed: true
+  derived_from: IEEE 802 U/L bit
+  terms: [universally_administered, locally_administered]
+- name: RandomizationConfidence
+  spec_location: components.schemas.Result.properties.randomization_confidence
+  closed: true
+  terms: [none, possible, likely]
+- name: ConfidenceNoneLowMediumHigh
+  spec_location: components.schemas.ConfidenceNoneLowMediumHigh
+  closed: true
+  used_by: device.confidence
+  terms: [none, low, medium, high]
+- name: VirtualizationConfidence
+  spec_location: components.schemas.Result.properties.virtualization.confidence
+  closed: true
+  terms: [none, low, high, exact]
+  definition: '"exact" is reserved for prefixes IEEE itself registered to a hypervisor vendor; conventions such as libvirt or the Docker bridge driver score lower.'
+- name: SpecialUseConfidence
+  spec_location: components.schemas.Result.properties.special_use.confidence
+  closed: true
+  terms: [none, high, exact]
+- name: VendorLocationParseConfidence
+  spec_location: components.schemas.Result.properties.vendor_location.parse_confidence
+  closed: true
+  terms: [none, low, medium]
+  definition: Caps out at medium by design; the provider refuses to guess where a street address ends in the common space-delimited IEEE format.
+- name: LocalVendorDerivationMethod
+  spec_location: components.schemas.Result.properties.local_vendor_derivation.method
+  closed: true
+  added_in: '1.2'
+  terms: ['', ul_bit_flip]
+- name: LocalVendorDerivationConfidence
+  spec_location: components.schemas.Result.properties.local_vendor_derivation.confidence
+  closed: true
+  added_in: '1.2'
+  terms: [none, low]
+  definition: >
+    Deliberately capped at low. Clearing the U/L bit and finding a registered prefix is
+    strong evidence about the bits, not proof about the device.
+- name: InferenceSource
+  spec_location: components.schemas.Result.properties.device.inference_source
+  closed: true
+  terms: [vendor_profile, null]
+- name: RegistrySource
+  spec_location: components.schemas.Result.properties.registry.source
+  closed: true
+  terms: [IEEE]
+- name: ApiVersion
+  spec_location: components.schemas.Result.properties.meta.api_version
+  closed: true
+  terms: [v1]
+external_vocabularies_referenced:
+- name: ISO 3166-1 alpha-2
+  used_by: [Result.country, Result.vendor_location.country_code, VendorBlock.country, searchVendors.country parameter]
+- name: RFC 4291 IPv6 link-local / modified EUI-64
+  used_by: [Result.eui64, Result.ipv6_link_local]
+- name: Special-use MAC protocols
+  used_by: [Result.special_use.protocol]
+  terms_documented: [broadcast, IPv4 multicast mapping, IPv6 multicast mapping, VRRP, HSRP, STP, LACP, 802.1X, LLDP]
+  source: https://macadress.com/docs
+counts:
+  vocabularies: 16
+  total_controlled_terms: 82

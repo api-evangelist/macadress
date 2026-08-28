@@ -1,0 +1,24 @@
+{
+  "_provenance": {
+    "generated": "2026-08-28",
+    "method": "probed",
+    "source": "https://api.macadress.com/v1/healthz",
+    "note": "Observed live on 2026-08-28. This is the only operation callable without an API key."
+  },
+  "operationId": "healthz",
+  "request": {
+    "method": "GET",
+    "url": "https://api.macadress.com/v1/healthz",
+    "headers": {}
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json",
+      "x-request-id": "05ce2062-0609-4786-8de8-c4443548f75e",
+      "x-data-version": "2026-08-28",
+      "strict-transport-security": "max-age=15552000; includeSubDomains; preload"
+    },
+    "body": { "status": "ok" }
+  }
+}

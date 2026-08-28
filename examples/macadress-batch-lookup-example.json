@@ -1,0 +1,54 @@
+{
+  "_provenance": {
+    "generated": "2026-08-28",
+    "method": "searched",
+    "source": "https://macadress.com/docs",
+    "note": "Transcribed verbatim from the provider's published API documentation. The response is the abbreviated form the docs publish: each successful entry actually carries every field shown in the lookupMAC example."
+  },
+  "operationId": "lookupMACBatch",
+  "request": {
+    "method": "POST",
+    "url": "https://api.macadress.com/v1/mac/batch",
+    "headers": {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer mk_your_api_key"
+    },
+    "body": {
+      "macs": ["00:03:93:AB:12:34", "not-a-mac"]
+    }
+  },
+  "request_alternate_auth": {
+    "method": "POST",
+    "url": "https://api.macadress.com/v1/mac/batch",
+    "headers": { "Content-Type": "application/json" },
+    "body": {
+      "api_key": "mk_your_api_key",
+      "macs": ["00:03:93:AB:12:34"]
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "count": 2,
+      "results": [
+        {
+          "input": "00:03:93:AB:12:34",
+          "mac": "00:03:93:AB:12:34",
+          "valid": true,
+          "organization": "Apple, Inc.",
+          "matched_prefix": "00:03:93",
+          "meta": { "request_id": "d204feb2-...", "api_version": "v1", "database_version": "2026-08-22", "processed_at": "2026-08-22T10:27:51Z", "cached": false }
+        },
+        {
+          "input": "not-a-mac",
+          "error": "invalid MAC address",
+          "mac": "",
+          "valid": false,
+          "organization": null,
+          "matched_prefix": null,
+          "meta": { "request_id": "d204feb2-...", "api_version": "v1", "database_version": "2026-08-22", "processed_at": "2026-08-22T10:27:51Z", "cached": false }
+        }
+      ]
+    }
+  }
+}

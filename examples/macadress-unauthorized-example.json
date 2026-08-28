@@ -1,0 +1,26 @@
+{
+  "_provenance": {
+    "generated": "2026-08-28",
+    "method": "probed",
+    "source": "https://api.macadress.com/v1/mac/00:03:93:AB:12:34",
+    "note": "Observed live on 2026-08-28 with no credential presented. Records the real 401 envelope and which headers are and are not returned before authentication."
+  },
+  "operationId": "lookupMAC",
+  "request": {
+    "method": "GET",
+    "url": "https://api.macadress.com/v1/mac/00:03:93:AB:12:34",
+    "headers": {}
+  },
+  "response": {
+    "status": 401,
+    "headers": {
+      "content-type": "application/json",
+      "x-request-id": "06ce2062-0609-4786-8de8-c4443548f75e",
+      "x-data-version": "2026-08-28"
+    },
+    "body": {
+      "error": "missing API key: pass it as \"api_key\" (query param or POST body) or an Authorization: Bearer header"
+    },
+    "not_returned": ["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset", "WWW-Authenticate", "Retry-After"]
+  }
+}

@@ -1,0 +1,84 @@
+generated: '2026-08-28'
+method: probed
+source: live GET of /.well-known/* on every apis.yml + OpenAPI servers[] host
+note: >
+  Three hosts probed (marketing/docs host, API host, MCP host). Exactly one document
+  is served: RFC 9116 security.txt on macadress.com. Everything else 404s with a
+  plain-text body (not an SPA shell), so these are true absences, not crawler failures.
+  The MCP server is a bearer-token surface by design and publishes no OAuth metadata:
+  https://macadress.com/mcp states outright that MCP authorization is optional for HTTP
+  transports and that they deliberately did not stand up an OAuth 2.1 server, which is
+  why /.well-known/oauth-authorization-server and /.well-known/oauth-protected-resource
+  are absent on mcp.macadress.com.
+hosts:
+- host: macadress.com
+  documents:
+  - path: /.well-known/security.txt
+    status: 200
+    file: well-known/macadress-security.txt
+  - path: /.well-known/openid-configuration
+    status: 404
+  - path: /.well-known/oauth-authorization-server
+    status: 404
+  - path: /.well-known/oauth-protected-resource
+    status: 404
+  - path: /.well-known/api-catalog
+    status: 404
+  - path: /.well-known/ai-plugin.json
+    status: 404
+  - path: /.well-known/agent-card.json
+    status: 404
+  - path: /.well-known/agent.json
+    status: 404
+- host: api.macadress.com
+  documents:
+  - path: /.well-known/security.txt
+    status: 404
+  - path: /.well-known/openid-configuration
+    status: 404
+  - path: /.well-known/oauth-authorization-server
+    status: 404
+  - path: /.well-known/oauth-protected-resource
+    status: 404
+  - path: /.well-known/api-catalog
+    status: 404
+  - path: /.well-known/ai-plugin.json
+    status: 404
+  - path: /.well-known/agent-card.json
+    status: 404
+  - path: /.well-known/agent.json
+    status: 404
+- host: mcp.macadress.com
+  documents:
+  - path: /.well-known/security.txt
+    status: 404
+  - path: /.well-known/openid-configuration
+    status: 404
+  - path: /.well-known/oauth-authorization-server
+    status: 404
+  - path: /.well-known/oauth-protected-resource
+    status: 404
+  - path: /.well-known/api-catalog
+    status: 404
+  - path: /.well-known/ai-plugin.json
+    status: 404
+  - path: /.well-known/agent-card.json
+    status: 404
+  - path: /.well-known/agent.json
+    status: 404
+other_root_documents:
+- path: /robots.txt
+  host: macadress.com
+  status: 200
+  note: >
+    Carries a Cloudflare Content-Signal directive "search=yes, ai-input=yes, ai-train=no"
+    plus explicit named Allow blocks for GPTBot, ChatGPT-User, ClaudeBot, anthropic-ai,
+    Google-Extended, PerplexityBot and CCBot. An explicit, machine-readable AI-consent
+    posture: inference-time fetching permitted, training refused.
+- path: /sitemap.xml
+  host: macadress.com
+  status: 200
+- path: /llms.txt
+  host: macadress.com
+  status: 200
+  file: llms/macadress-llms.txt

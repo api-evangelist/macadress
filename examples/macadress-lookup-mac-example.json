@@ -1,0 +1,97 @@
+{
+  "_provenance": {
+    "generated": "2026-08-28",
+    "method": "searched",
+    "source": "https://macadress.com/docs",
+    "note": "Request and response transcribed verbatim from the provider's published API documentation. Not synthesized."
+  },
+  "operationId": "lookupMAC",
+  "request": {
+    "method": "GET",
+    "url": "https://api.macadress.com/v1/mac/00:03:93:AB:12:34",
+    "headers": {
+      "Authorization": "Bearer mk_your_api_key"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "mac": "00:03:93:AB:12:34",
+      "valid": true,
+      "oui": "00:03:93",
+      "organization": "Apple, Inc.",
+      "vendor_address": "1 Infinite Loop Cupertino CA US 95014",
+      "country": "US",
+      "block_type": "MA-L",
+      "address_capacity": 16777216,
+      "range_start": "00:03:93:00:00:00",
+      "range_end": "00:03:93:FF:FF:FF",
+      "registered": true,
+      "transmission_type": "unicast",
+      "administration_type": "universally_administered",
+      "locally_administered": false,
+      "slap_quadrant": null,
+      "eui64": "02:03:93:FF:FE:AB:12:34",
+      "ipv6_link_local": "fe80::203:93ff:feab:1234",
+      "potentially_randomized": false,
+      "randomization_confidence": "none",
+      "vendor_lookup_reliable": true,
+      "is_zero": false,
+      "is_broadcast": false,
+      "explanation": "This is a universally administered unicast address with a registered vendor prefix.",
+      "is_private": false,
+      "matched_prefix": "00:03:93",
+      "prefix_length": 24,
+      "registry": {
+        "source": "IEEE",
+        "record_type": "MA-L",
+        "record_updated_at": null,
+        "database_synced_at": "2026-08-22T03:10:00Z"
+      },
+      "device": {
+        "category": "consumer_electronics",
+        "possible_categories": ["smartphone", "tablet", "computer", "media_device"],
+        "confidence": "medium",
+        "inference_source": "vendor_profile",
+        "exact_model_known": false
+      },
+      "virtualization": { "detected": false, "platform": null, "confidence": "none", "signals": [] },
+      "special_use": { "detected": false, "type": null, "protocol": null, "name": null, "source": null, "confidence": "none" },
+      "vendor_location": {
+        "raw": "1 Infinite Loop Cupertino CA US 95014",
+        "address_line": null,
+        "city": null,
+        "region": null,
+        "postal_code": null,
+        "country_code": "US",
+        "country_name": "United States",
+        "parse_confidence": "low"
+      },
+      "randomization": { "potentially_randomized": false, "confidence": "none", "signals": [], "alternative_explanations": [] },
+      "assignment": { "registered_at": null, "first_seen_at": "2026-08-22", "last_changed_at": "2026-08-22" },
+      "vendor": {
+        "id": "apple-inc",
+        "registered_name": "Apple, Inc.",
+        "canonical_name": "Apple, Inc.",
+        "slug": "apple-inc",
+        "block_count": 1553,
+        "lookup_url": "https://macadress.com/vendor/000393"
+      },
+      "meta": {
+        "request_id": "5249ebff-787d-4776-97c3-235a8c95823c",
+        "api_version": "v1",
+        "database_version": "2026-08-22",
+        "processed_at": "2026-08-22T10:26:47Z",
+        "cached": false
+      }
+    }
+  },
+  "error_response": {
+    "status": 400,
+    "body": {
+      "valid": false,
+      "error": "invalid MAC address",
+      "request_id": "19ee676c-4410-443f-813e-3bbb3433b4bf"
+    }
+  }
+}

@@ -1,0 +1,180 @@
+generated: '2026-08-28'
+method: derived
+source: openapi/macadress-openapi.yaml
+enriched_from: https://macadress.com/docs
+note: >
+  Derived from components.schemas $ref edges and the id-reference fields inside them. This
+  is a reference-data API, so the graph is shallow and read-only: one root Result composed
+  of six typed sub-objects, plus a parallel VendorBlock projection for the directory
+  search. There are no foreign keys between user-owned resources because there are no
+  user-owned resources.
+entities:
+- name: Result
+  description: The full analysis of one MAC address. Root of the lookup response.
+  identifier: mac (canonical colon-separated uppercase form)
+  operations: [lookupMAC, lookupMACBatch]
+  required_fields: 20
+  relationships:
+  - has_one: DeviceCategory
+    via: device.category
+    kind: enum reference
+  - has_one: DeviceCategory
+    via: device.possible_categories[]
+    kind: enum reference (array)
+  - has_one: ConfidenceNoneLowMediumHigh
+    via: device.confidence
+    kind: enum reference
+  - has_one: Registry
+    via: registry
+    kind: embedded object, nullable
+  - has_one: Device
+    via: device
+    kind: embedded object
+  - has_one: Virtualization
+    via: virtualization
+    kind: embedded object
+  - has_one: SpecialUse
+    via: special_use
+    kind: embedded object
+  - has_one: VendorLocation
+    via: vendor_location
+    kind: embedded object
+  - has_one: Randomization
+    via: randomization
+    kind: embedded object
+  - has_one: Assignment
+    via: assignment
+    kind: embedded object, nullable
+  - has_one: Vendor
+    via: vendor
+    kind: embedded object, nullable
+  - has_one: Meta
+    via: meta
+    kind: embedded object
+  - has_one: LocalVendorDerivation
+    via: local_vendor_derivation
+    kind: embedded object (added x-added-in-version 1.2, observed appearing mid-enrichment 2026-08-28)
+- name: LocalVendorDerivation
+  description: >
+    Best-effort vendor recovery for a locally administered unicast address that looks formed
+    by setting the U/L bit on a real IEEE assignment — multi-BSSID Wi-Fi APs, Wi-Fi Direct /
+    P2P interfaces, naive spoofing — rather than by OS privacy randomization.
+  fields: [detected, method, universal_mac, confidence, organization, country, matched_prefix, block_type, lookup_url, device, signals]
+  method_enum: ['', ul_bit_flip]
+  confidence_enum: [none, low]
+  notes:
+  - >
+      confidence is capped at "low" by design. A match is strong evidence the bits came from
+      that OUI but cannot separate an access point's own BSSID from a spoofer who picked that
+      OUI. The schema states outright that this is never a decode of OS randomization, whose
+      46 bits are uniformly random.
+  - detected is true only when clearing the U/L bit yields a registered prefix, the address is not itself registered, it is unicast, it is not an SAI-quadrant protocol address, and its suffix is not all zero.
+  relationships:
+  - has_one: DeviceCategory
+    via: device.category
+    kind: enum reference
+
+- name: BatchItem
+  description: One entry in a batch response. allOf Result plus the original input and an optional per-item error.
+  operations: [lookupMACBatch]
+  relationships:
+  - belongs_to: Result
+    via: allOf composition
+  adds_fields: [input, error]
+- name: Vendor
+  description: >
+    Conservative canonical identity for the registered organization. Documented as a
+    mechanical slug of the exact registered name, never a merge of spelling variants,
+    subsidiaries or acquisitions.
+  identifier: id (== slug)
+  fields: [id, registered_name, canonical_name, slug, block_count, lookup_url]
+  relationships:
+  - has_many: VendorBlock
+    via: block_count (count only; the blocks themselves are not returned inline)
+  - references: web page
+    via: lookup_url -> https://macadress.com/vendor/{prefix-hex}
+  cross_surface_note: >
+    get_vendor_block on the MCP server returns full detail for one block plus the other
+    blocks the same organization holds. No public REST operation does; see
+    mcp/macadress-tool-crosswalk.yml.
+- name: VendorBlock
+  description: One IEEE-assigned MAC/OUI prefix block, as returned by the directory search.
+  identifier: prefix_int + mask_bits
+  operations: [searchVendors]
+  fields: [prefix_int, mask_bits, block_type, organization, address, country, is_private, first_seen_at, last_changed_at]
+  relationships:
+  - belongs_to: Vendor
+    via: organization (name string; no vendor id is returned on this projection)
+- name: VendorSearchResult
+  description: Envelope for the directory search.
+  operations: [searchVendors]
+  relationships:
+  - has_many: VendorBlock
+    via: blocks[]
+  fields: [total, blocks]
+- name: Registry
+  description: Provenance of the matched registration record.
+  fields: [source, record_type, record_updated_at, database_synced_at]
+  notes:
+  - source is a const IEEE.
+  - record_type mirrors the block_type enum.
+  - record_updated_at is documented as always null; IEEE publishes no per-record update date.
+- name: Device
+  description: Inferred device class, from a manually curated vendor-to-category dataset, not from IEEE data.
+  fields: [category, possible_categories, confidence, inference_source, exact_model_known]
+  notes:
+  - exact_model_known is a const false. A MAC address alone never identifies an exact model.
+  - category is "unknown" for most of the registry today.
+- name: Virtualization
+  fields: [detected, platform, confidence, signals]
+  confidence_enum: [none, low, high, exact]
+  notes:
+  - '"exact" only for prefixes IEEE itself registered to a hypervisor vendor (VMware, Xen, Hyper-V, VirtualBox, Parallels).'
+- name: SpecialUse
+  fields: [detected, type, protocol, name, source, confidence]
+  confidence_enum: [none, high, exact]
+  notes:
+  - Covers broadcast, IPv4/IPv6 multicast mapping, VRRP, HSRP, STP, LACP, 802.1X and LLDP, each with its documenting source.
+- name: VendorLocation
+  fields: [raw, address_line, city, region, postal_code, country_code, country_name, parse_confidence]
+  parse_confidence_enum: [none, low, medium]
+- name: Randomization
+  fields: [potentially_randomized, confidence, signals, alternative_explanations]
+  notes:
+  - Machine-readable version of the top-level potentially_randomized/randomization_confidence pair, cross-checked against Virtualization.
+- name: Assignment
+  fields: [registered_at, first_seen_at, last_changed_at]
+  notes:
+  - registered_at is documented as always null; no authoritative IEEE registration date exists.
+  - first_seen_at/last_changed_at are this deployment's sync history, not IEEE dates.
+- name: Meta
+  fields: [request_id, api_version, database_version, processed_at, cached]
+  notes:
+  - Present on every successful response; mirrors the X-Request-Id and X-Data-Version headers.
+- name: ParseErrorBody
+  fields: [valid, error, request_id]
+  operations: [lookupMAC, lookupMACBatch]
+enums:
+- name: DeviceCategory
+  values: 24
+  ref: vocabulary/macadress-vocabulary.yml
+- name: ConfidenceNoneLowMediumHigh
+  values: [none, low, medium, high]
+- name: block_type
+  values: [MA-L, MA-M, MA-S, IAB, CID]
+- name: slap_quadrant
+  values: [AAI, ELI, reserved, SAI]
+- name: transmission_type
+  values: [unicast, multicast, broadcast]
+- name: administration_type
+  values: [universally_administered, locally_administered]
+- name: randomization_confidence
+  values: [none, possible, likely]
+id_conventions:
+  vendor_id: mechanical slug of the registered organization name, e.g. apple-inc
+  block_id: prefix in hex, 6 digits for a /24, 7 for a /28, 9 for a /36, e.g. 286FB9
+  request_id: uuid v4
+counts:
+  schemas_in_spec: 7
+  entities_modelled: 14
+  relationship_edges: 19

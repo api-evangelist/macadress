@@ -1,0 +1,104 @@
+generated: '2026-08-28'
+method: searched
+source: https://macadress.com/docs
+docs:
+- https://macadress.com/docs
+- https://macadress.com/pricing
+- https://macadress.com/mcp
+limit_count: 3
+enforced: true
+note: >
+  Two independent budgets are enforced on every plan: a requests-per-minute cap on a
+  rolling window (not a fixed clock minute), and a lookup quota over a rolling 30-day
+  cycle that starts at signup. The RPM budget is shared across both lookup endpoints and
+  a batch request counts once against it; the cycle quota counts per address actually
+  resolved. GET /v1/healthz is exempt from both and needs no key. The MCP server enforces
+  the same per-plan numbers, but each surface converges its usage count independently
+  rather than sharing one live counter (provider's own wording). Usage counters are held
+  in API memory and flushed to storage about once a minute, so the account page can lag
+  live usage by that much.
+rate_limits:
+- scope: per-key (per plan)
+  plan: Free
+  window: 1 minute (rolling)
+  limit: 30
+  unit: requests
+  burst: null
+- scope: per-key (per plan)
+  plan: Growth
+  window: 1 minute (rolling)
+  limit: 120
+  unit: requests
+  burst: null
+- scope: per-key (per plan)
+  plan: Scale
+  window: 1 minute (rolling)
+  limit: 600
+  unit: requests
+  burst: null
+quotas:
+- scope: per-account
+  plan: Free
+  window: rolling 30-day cycle from signup
+  limit: 1000
+  unit: lookups
+  grace: none
+  paused_at: 1000
+- scope: per-account
+  plan: Growth
+  window: rolling 30-day cycle from signup
+  limit: 100000
+  unit: lookups
+  grace: 20%
+  paused_at: 120000
+- scope: per-account
+  plan: Scale
+  window: rolling 30-day cycle from signup
+  limit: 1000000
+  unit: lookups
+  grace: 20%
+  paused_at: 1200000
+response_headers:
+- name: X-RateLimit-Limit
+  meaning: Requests-per-minute cap for the authenticated plan.
+  declared_in: openapi/macadress-openapi.yaml components.headers.XRateLimitLimit
+- name: X-RateLimit-Remaining
+  meaning: Requests remaining in the current sliding window.
+  declared_in: openapi/macadress-openapi.yaml components.headers.XRateLimitRemaining
+- name: X-RateLimit-Reset
+  meaning: Seconds until the current window's usage resets.
+  declared_in: openapi/macadress-openapi.yaml components.headers.XRateLimitReset
+- name: X-Request-Id
+  meaning: Per-request identifier, present on every response including errors.
+  observed_live: true
+- name: X-Data-Version
+  meaning: UTC date the vendor database last synced; mirrors meta.database_version.
+  observed_live: true
+exhaustion:
+  rate_limit:
+    status: 429
+    body: '{"error": "rate limit exceeded: 30 requests/minute on the free plan"}'
+    retry_after_header: false
+    note: >
+      No Retry-After header is documented or declared in the OpenAPI. An agent must read
+      X-RateLimit-Reset (seconds) instead; on a 429 the documented body carries the plan
+      and the number but not the reset.
+  quota:
+    status: 429
+    body_free: '{"error": "quota exceeded: 1000 lookups on the free plan this cycle, upgrade at /pricing for more"}'
+    body_paid: '{"error": "quota exceeded: used your 100000-lookup growth plan quota plus its 20% grace buffer this cycle, resets at renewal"}'
+x-evidence:
+- fetched: '2026-08-28'
+  url: https://api.macadress.com/v1/healthz
+  http_status: 200
+  headers_seen: [x-request-id, x-data-version, strict-transport-security]
+  note: 'X-RateLimit-* NOT returned on the unauthenticated liveness endpoint.'
+- fetched: '2026-08-28'
+  url: https://api.macadress.com/v1/mac/00:03:93:AB:12:34
+  http_status: 401
+  headers_seen: [x-request-id, x-data-version]
+  note: >
+    X-RateLimit-* NOT returned on an unauthenticated 401 either. The rate-limit headers
+    are declared on the 200 responses of every keyed operation in the OpenAPI, so they
+    are presumed to appear only once a valid key is presented; that could not be verified
+    without a key.

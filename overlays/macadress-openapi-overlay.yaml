@@ -1,0 +1,162 @@
+overlay: 1.0.0
+info:
+  title: API Evangelist enhancements for the macadress.com API
+  version: 1.0.0
+x-provenance:
+  generated: '2026-08-28'
+  method: generated
+  source: >
+    Enhancements derived from the provider's own published surfaces —
+    https://macadress.com/docs, https://macadress.com/pricing and
+    https://macadress.com/mcp — applied over openapi/macadress-openapi.yaml
+    (https://macadress.com/static/openapi.yaml?v=ceee2d51). Nothing here is invented: every
+    added value is transcribed from a page the provider publishes, and every added example
+    is the provider's own documented payload. The original spec is never mutated.
+  extends: openapi/macadress-openapi.yaml
+actions:
+- target: $.info
+  description: >
+    Add the support contact published in the RFC 9116 security.txt, and record the terms
+    URL the licence block only names in prose.
+  update:
+    contact:
+      email: hello@macadress.com
+      url: https://macadress.com/docs
+    termsOfService: https://macadress.com/terms
+- target: $
+  description: >
+    Declare a tag set. The published spec tags no operation, so generated clients emit one
+    flat namespace and the refine-by-tag pipeline has nothing to split on.
+  update:
+    tags:
+    - name: Lookup
+      description: Resolve a MAC address or OUI to its registration, vendor and derived properties.
+    - name: Directory
+      description: Search the registered IEEE vendor/block directory.
+    - name: Operations
+      description: Liveness and service health.
+- target: $.paths['/v1/mac/{mac}'].get
+  description: Tag the single-address lookup and attach the provider's documented response example.
+  update:
+    tags: [Lookup]
+    responses:
+      '200':
+        content:
+          application/json:
+            examples:
+              registeredAppleAddress:
+                summary: A registered, universally administered unicast address (from the provider's docs)
+                externalValue: examples/macadress-lookup-mac-example.json
+      '400':
+        content:
+          application/json:
+            examples:
+              unparseable:
+                summary: Input did not parse as a MAC address
+                value:
+                  valid: false
+                  error: invalid MAC address
+                  request_id: 19ee676c-4410-443f-813e-3bbb3433b4bf
+      '401':
+        content:
+          application/json:
+            examples:
+              missingKey:
+                summary: Observed live 2026-08-28 with no credential presented
+                value:
+                  error: 'missing API key: pass it as "api_key" (query param or POST body) or an Authorization: Bearer header'
+      '429':
+        content:
+          application/json:
+            examples:
+              rateLimited:
+                summary: Per-minute cap exceeded
+                value:
+                  error: 'rate limit exceeded: 30 requests/minute on the free plan'
+              quotaExhausted:
+                summary: >
+                  Cycle quota exhausted. Shares status 429 with the rate limit and is NOT
+                  retryable in-window; the only discriminator the API emits is the prose.
+                value:
+                  error: 'quota exceeded: 1000 lookups on the free plan this cycle, upgrade at /pricing for more'
+- target: $.paths['/v1/mac/batch'].post
+  description: Tag the batch lookup and record the per-address billing rule the docs state.
+  update:
+    tags: [Lookup]
+    x-billing:
+      unit: address resolved
+      note: >
+        A batch counts once against the requests-per-minute budget but once per address
+        against the cycle quota. Retrying a 100-address batch spends 100 more lookups;
+        there is no dedupe window.
+    responses:
+      '200':
+        content:
+          application/json:
+            examples:
+              mixedValidAndInvalid:
+                summary: One valid address and one unparseable one, both returned at HTTP 200
+                externalValue: examples/macadress-batch-lookup-example.json
+- target: $.paths['/v1/vendors'].get
+  description: Tag the directory search and record the reachability ceiling on its result set.
+  update:
+    tags: [Directory]
+    x-pagination:
+      style: limit-only
+      cursor: false
+      offset: false
+      note: >
+        total can report the full ~58,000 non-private blocks when query and country are both
+        omitted, but only the first `limit` (max 50) are reachable. The rest of the directory
+        is not paginable through the API; the complete dataset is published as static files
+        at https://macadress.com/downloads.
+    responses:
+      '200':
+        content:
+          application/json:
+            examples:
+              appleBlocksInUS:
+                summary: Organization substring plus country filter (from the provider's docs)
+                externalValue: examples/macadress-search-vendors-example.json
+- target: $.paths['/v1/healthz'].get
+  description: Tag the liveness check and record that it is both unkeyed and unmetered.
+  update:
+    tags: [Operations]
+    x-quota-exempt: true
+    x-auth-required: false
+    responses:
+      '200':
+        content:
+          application/json:
+            examples:
+              live:
+                summary: Observed live 2026-08-28
+                value:
+                  status: ok
+- target: $.components.schemas.Result.properties.is_private
+  description: Carry the replacement guidance the docs give for the one deprecated field into the schema description.
+  update:
+    x-deprecation:
+      replacement: 'organization === null together with vendor_lookup_reliable'
+      removal_date: null
+      docs: https://macadress.com/docs
+- target: $
+  description: >
+    Record the operation the provider fully documents but omits from the published contract.
+    This is NOT an assertion that the spec should contain it — it is a machine-readable note
+    that a fourth lookup endpoint exists in the human docs and cannot be reached from the
+    contract, so a generated client and an MCP agent both miss it.
+  update:
+    x-undocumented-in-contract:
+    - method: post
+      path: /v1/mac/extract
+      summary: >
+        Scan free-form text (arp -a output, log dumps, DHCP leases) for MAC addresses and
+        look up every one found, up to 100 per request. Response adds a `truncated` flag;
+        addresses are deduplicated and returned in first-seen order. Bills per address
+        resolved, like the batch endpoint.
+      documented_at: https://macadress.com/docs
+      human_surface: https://macadress.com/extract
+      present_in_openapi: false
+      present_as_mcp_tool: false
+      observed: '2026-08-28'

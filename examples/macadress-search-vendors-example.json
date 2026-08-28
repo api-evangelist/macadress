@@ -1,0 +1,35 @@
+{
+  "_provenance": {
+    "generated": "2026-08-28",
+    "method": "searched",
+    "source": "https://macadress.com/docs",
+    "note": "Transcribed verbatim from the provider's published API documentation."
+  },
+  "operationId": "searchVendors",
+  "request": {
+    "method": "GET",
+    "url": "https://api.macadress.com/v1/vendors?query=Apple&country=US&limit=10",
+    "headers": {
+      "Authorization": "Bearer mk_your_api_key"
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "total": 1553,
+      "blocks": [
+        {
+          "prefix_int": 915,
+          "mask_bits": 24,
+          "block_type": "MA-L",
+          "organization": "Apple, Inc.",
+          "address": "1 Infinite Loop Cupertino CA US 95014",
+          "country": "US",
+          "is_private": false,
+          "first_seen_at": "2026-08-22T14:26:39Z",
+          "last_changed_at": "2026-08-22T14:26:39Z"
+        }
+      ]
+    }
+  }
+}

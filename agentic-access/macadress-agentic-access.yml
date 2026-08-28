@@ -1,0 +1,122 @@
+generated: '2026-08-28'
+method: generated
+source: openapi/macadress-openapi.yaml
+description: >
+  Recommended x-agentic-access execution contracts for exposing the macadress.com API to AI
+  agents. Classified from the published OpenAPI plus the provider's own quota and billing
+  rules. A governance starting point — review and bind audience per deployment.
+posture: >
+  This is one of the low-risk shapes: every operation is a read, nothing mutates
+  provider-side state, and the only irreversible consequence of any call is quota spend.
+  That makes the interesting control here ECONOMIC rather than safety-critical. A batch
+  lookup bills per address resolved, so a single agent call can consume 100 lookups, and a
+  free-plan agent can exhaust its whole 1,000-lookup cycle in ten calls with no way to
+  reverse it. Budget caps and retry discipline are the governance surface, not human
+  approval.
+provider_consent_signals:
+  robots_txt: https://macadress.com/robots.txt
+  content_signal: 'search=yes, ai-input=yes, ai-train=no'
+  named_agents_allowed: [GPTBot, ChatGPT-User, ClaudeBot, anthropic-ai, Google-Extended, PerplexityBot, CCBot]
+  disallowed_paths: [/admin]
+  llms_txt: https://macadress.com/llms.txt
+  reading: >
+    The provider explicitly permits inference-time agent retrieval and explicitly refuses
+    training use, and it publishes an llms.txt naming its own surfaces. Its llms.txt also
+    states that every /lookup/:mac and /vendor/:id page is safe for an agent to fetch and
+    cite, and asks agents to prefer linking a human to the HTML page over the raw API.
+    Honour the ai-train=no signal: results retrieved here are for answering, not for
+    corpus building.
+summary:
+  operations: 4
+  by_action_class:
+    connected: 4
+    acting: 0
+  by_consequence:
+    read: 4
+    write: 0
+    physical: 0
+    safety-critical: 0
+  human_in_the_loop_required: 0
+  metered_operations: 3
+  unmetered_operations: 1
+operations:
+- path: /v1/mac/{mac}
+  method: get
+  operationId: lookupMAC
+  x-agentic-access:
+    action-class: connected
+    consequence: read
+    subject: optional
+    token:
+      max-ttl: 3600
+      note: 'Static API key (mk_ prefix), no expiry issued by the provider; rotate on your own schedule.'
+    cost:
+      billed: true
+      unit: 1 lookup per call
+    audit: none
+- path: /v1/mac/batch
+  method: post
+  operationId: lookupMACBatch
+  x-agentic-access:
+    action-class: connected
+    consequence: read
+    subject: optional
+    token:
+      max-ttl: 3600
+    cost:
+      billed: true
+      unit: 1 lookup per address resolved, up to 100 per call
+      note: >
+        The highest-cost call on the surface. POST does not mean write here — the method is
+        chosen only because a 100-address list does not fit in a URL — but an agent retry
+        loop on this endpoint is the one way to spend real money against this API.
+    escalation:
+      human-in-the-loop: 'no'
+      budget-cap: recommended
+      triggers:
+      - repeated-retry-after-429
+      - batch-volume-above-plan-cycle-fraction
+    audit: recommended
+- path: /v1/vendors
+  method: get
+  operationId: searchVendors
+  x-agentic-access:
+    action-class: connected
+    consequence: read
+    subject: optional
+    token:
+      max-ttl: 3600
+    cost:
+      billed: true
+      unit: 1 lookup per call
+      note: >
+        Bills as a full lookup even though it returns at most 50 rows and has no cursor.
+        An agent trying to walk the directory by repeated filtered searches will spend
+        heavily and still cannot reach beyond 50 rows per filter; direct it to the static
+        bulk downloads at https://macadress.com/downloads instead.
+    audit: none
+- path: /v1/healthz
+  method: get
+  operationId: healthz
+  x-agentic-access:
+    action-class: connected
+    consequence: read
+    subject: none
+    authentication: none
+    token:
+      max-ttl: null
+    cost:
+      billed: false
+      unit: unmetered
+      note: The only free call on the surface. Safe for an agent to poll before a large job.
+    audit: none
+non_contract_surface:
+- path: /v1/mac/extract
+  method: post
+  present_in_openapi: false
+  documented_at: https://macadress.com/docs
+  note: >
+    Fully documented but absent from the machine-readable contract, so an agent driven by
+    the OpenAPI or by the MCP tool list cannot discover it. Same read-only, per-address
+    billing profile as the batch endpoint. Recorded here so a governance review sees the
+    whole surface, not just the declared one.

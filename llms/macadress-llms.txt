@@ -1,0 +1,31 @@
+# macadress.com
+
+> Free MAC address vendor lookup with plain-English explanations: OUI/vendor, IEEE 802c SLAP classification, privacy-randomization detection, EUI-64 and IPv6 link-local derivation, block ranges, and country of registration. Data is synced directly from IEEE's public OUI/MAC registries on a recurring schedule, not a static one-time snapshot.
+
+macadress.com looks up MAC addresses and explains what's true about them, not just who made them. Every result covers whether the address is universally or locally administered, whether it may be a privacy-randomized address and how confident that judgment is (with the reasoning shown, not just a label), its IEEE 802c SLAP quadrant, its derived EUI-64/IPv6 link-local address, and, when registered, the vendor name, address, country, and full block range.
+
+## Pages
+
+- [Home](https://macadress.com/): lookup form and product overview.
+- [Lookup a MAC address](https://macadress.com/lookup/28:6F:B9:00:00:00): deep-linkable result page, one per address. Replace the address in the path to look up any other one.
+- [Vendor directory](https://macadress.com/vendors): every registered MAC/OUI block, searchable by organization name.
+- [Vendor page](https://macadress.com/vendor/286FB9): one page per registered block (MA-L, MA-M, MA-S, IAB, or CID), with its address range, example addresses, and other blocks the same organization holds. The path segment is the block's prefix in hex (6 digits for a /24, 7 for a /28, 9 for a /36).
+- [Country page](https://macadress.com/country/us): every registered block based in one country, e.g. `/country/de` for Germany. Lowercase ISO 3166-1 alpha-2 code.
+- [Extract MAC addresses from text](https://macadress.com/extract): paste arp -a output, an iwlist scan, DHCP leases, or any log text; every MAC address found gets looked up.
+- [Downloads](https://macadress.com/downloads): the full vendor database as static files, rebuilt from the live registry twice a day and served from disk: Cisco's vendorMacs.xml schema, CSV, JSON, and drop-in replacements for Wireshark's manuf file and nmap's nmap-mac-prefixes file.
+- [Learn](https://macadress.com/learn): two kinds of guide. Fundamentals: what a MAC address is, how it's structured (OUI, the unicast/multicast and universal/local bits), MAC address vs. IP address, how to find your own MAC address per OS, MAC randomization explained, and a history of the format from 1973's original Ethernet to today. Downloads & tools: importing an OUI file into Cisco ISE, updating Wireshark/tshark's manuf file, refreshing nmap's nmap-mac-prefixes file, the CSV/JSON formats' column/field reference with usage examples, and whether self-hosting the lookup engine is worth it.
+- [Pricing](https://macadress.com/pricing): free and paid API tiers, plus a self-hosted license for the API and sync engine.
+- [API documentation](https://macadress.com/docs): endpoints, request/response shapes, and example requests for the JSON API.
+- [MCP server](https://macadress.com/mcp): the same lookup and vendor directory as tools an AI agent can call over Model Context Protocol, authenticated with the same API key.
+- [Extensions](https://macadress.com/extensions): pre-built integrations that call the API from other tools. [Splunk](https://macadress.com/extensions/splunk) adds a `macaddresslookup` search command; the [MISP module](https://macadress.com/extensions/misp) enriches a `mac-address` attribute; an iTop/TeemIp extension ships in the repository.
+- [About](https://macadress.com/about): who builds macadress.com (ApisOS FZE) and why.
+- [Data sources and methodology](https://macadress.com/data-sources): where the data comes from (IEEE's MA-L/MA-M/MA-S/IAB/CID registries), sync frequency, how block matching and randomization confidence work, and known limitations.
+- [Contact](https://macadress.com/contact): a form for questions, self-hosted licensing, billing, and bug reports.
+
+## API
+
+- [JSON API](https://macadress.com/docs): `GET /v1/mac/:mac` and `POST /v1/mac/batch` at api.macadress.com, documented at https://macadress.com/docs. Every request needs a free API key (sign up at https://macadress.com/signup for one instantly). The free plan's 1,000-lookup quota (a rolling 30-day cycle from signup, not a calendar month) and per-plan requests/minute limit are both enforced; paid plans track usage but aren't cut off.
+
+## Notes for AI agents
+
+Every `/lookup/:mac` and `/vendor/:id` page is safe to fetch directly and cite: the HTML result and the JSON API return the same underlying analysis. Prefer linking to `https://macadress.com/lookup/{mac}` (human-readable, includes the plain-English reasoning) over the raw API when producing a citation for a person. Blocks IEEE recorded as "Private" (no disclosed organization) don't have a vendor page; a 404 at `/vendor/{id}` means the block is either private or unregistered, not a broken link.

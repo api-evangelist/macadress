@@ -1,0 +1,160 @@
+generated: '2026-08-28'
+method: searched
+source: https://macadress.com/docs
+derived_from:
+- openapi/macadress-openapi.yaml
+docs:
+- https://macadress.com/docs
+- https://macadress.com/mcp
+summary: >
+  A small, strictly read-only JSON API. Four operations in the published contract, three
+  of them keyed lookups and one unkeyed liveness check. There is no create, update or
+  delete anywhere on the surface, which is why idempotency, dry-run and reversibility are
+  all na rather than absent: there is nothing to double-fire, rehearse or take back.
+authentication:
+  style: api-key
+  transports:
+  - 'Authorization: Bearer mk_... header (all endpoints)'
+  - '?api_key=mk_... query parameter (all endpoints)'
+  - '"api_key" field in the JSON body (POST /v1/mac/batch only)'
+  key_prefix: mk_
+  anonymous_operations:
+  - healthz
+  reference: authentication/macadress-authentication.yml
+  note: >
+    The key is issued instantly at signup with no approval step. A query-parameter key is
+    convenient but leaks into proxy and server logs; the header form is the safer default
+    and is the one every published example uses.
+idempotency:
+  supported: na
+  header: null
+  reason: >
+    Read-only API. Every operation is a lookup: three GETs plus one POST that exists only
+    because a 100-address list does not fit in a URL. Replaying any call has no side effect
+    beyond consuming quota, so there is no idempotency key to carry and none is documented.
+  quota_caveat: >
+    One real consequence of a retry: a retried batch bills again, per address resolved. An
+    agent retrying a 100-address batch spends 100 more lookups. There is no dedupe window.
+dry_run_mode:
+  supported: na
+  reason: Read-only API; no operation mutates provider-side state.
+reversibility:
+  applicable: false
+  grade: na
+  reason: >
+    No write surface. There is no create/update/delete operation anywhere in the published
+    contract or the docs, so no reversal operation exists or could exist. The only
+    irreversible consequence of calling this API is quota consumption, and the provider
+    documents that grace consumed on a paid plan is carried forward as a smaller next-cycle
+    budget rather than refunded or billed.
+  write_operations: []
+  source: https://macadress.com/docs
+pagination:
+  style: limit-only
+  applies_to:
+  - searchVendors
+  request_params:
+  - name: limit
+    default: 10
+    maximum: 50
+  response_fields:
+  - name: total
+    meaning: How many blocks match, independent of the limit applied.
+  - name: blocks
+    meaning: The page actually returned.
+  cursor: false
+  offset: false
+  gap: >
+    There is no offset or cursor parameter. total can report ~58,000 matching blocks when
+    query and country are both omitted, but only the first `limit` (max 50) are reachable.
+    The remainder of the vendor directory is not paginable through the API; the full
+    dataset is instead published as static files at https://macadress.com/downloads
+    (CSV, JSON, Cisco vendorMacs.xml, Wireshark manuf, nmap-mac-prefixes).
+batching:
+  supported: true
+  operations:
+  - lookupMACBatch
+  max_items: 100
+  partial_failure: true
+  note: >
+    Invalid entries do not fail the batch; each result carries its own valid/error. Results
+    come back in the same order as the input and each carries the original `input` string.
+    Every item in one batch shares the same meta.request_id.
+field_expansion:
+  supported: false
+sparse_fieldsets:
+  supported: false
+metadata_envelope:
+  field: meta
+  members: [request_id, api_version, database_version, processed_at, cached]
+  note: Present on every successful response; error bodies carry request_id alone.
+request_tracing:
+  header: X-Request-Id
+  in_body: meta.request_id
+  on_errors: true
+  observed_live: true
+data_freshness:
+  header: X-Data-Version
+  in_body: meta.database_version
+  format: date (UTC)
+  observed_live: '2026-08-28'
+  note: >
+    A first-class freshness signal on every response, success or error. An agent can tell
+    how stale the underlying IEEE snapshot is without a second call. Registry sync runs
+    twice daily.
+caching:
+  response_field: meta.cached
+  http_cache_headers: false
+  note: Cloudflare returns cf-cache-status DYNAMIC; no Cache-Control/ETag observed.
+versioning:
+  style: path
+  current: v1
+  in_body: meta.api_version
+  compatibility_policy: >
+    Declared in the OpenAPI info.description: every field beyond the original v1 set is
+    marked with an x-added-in-version extension and is additive and nullable, so an
+    integration reading only the original fields is unaffected by new ones appearing
+    alongside them.
+  reference: lifecycle/macadress-lifecycle.yml
+error_envelope:
+  format: custom-json
+  rfc9457: false
+  shapes:
+  - context: parse failure (400)
+    shape: '{"valid": false, "error": "<message>", "request_id": "<uuid>"}'
+  - context: auth / rate / quota (401, 429)
+    shape: '{"error": "<message>"}'
+  - context: dependency failure (503)
+    shape: '{"error": "<message>"}'
+  content_type: application/json
+  machine_readable_code: false
+  gap: >
+    Error bodies carry a human sentence and no stable machine code, and the media type is
+    application/json rather than application/problem+json. An agent distinguishing "bad
+    key" from "rate limited" from "quota exhausted" must either branch on the HTTP status
+    (401 vs 429) or substring-match the prose, because 429 covers both the per-minute cap
+    and the cycle quota with different remediation.
+  reference: errors/macadress-problem-types.yml
+rate_limit_signaling:
+  headers: [X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset]
+  retry_after: false
+  status: 429
+  reference: rate-limits/macadress-rate-limits.yml
+input_normalization:
+  accepted_formats:
+  - colon (AA:BB:CC:DD:EE:FF)
+  - hyphen (AA-BB-CC-DD-EE-FF)
+  - space (AA BB CC DD EE FF)
+  - Cisco dot-grouped (aabb.ccdd.eeff)
+  - bare hex (AABBCCDDEEFF)
+  case_insensitive: true
+  canonical_output: colon-separated uppercase, returned in the `mac` field
+epistemics:
+  note: >
+    Unusually explicit about the limits of its own answers, and this is machine-readable
+    rather than prose-only. device.exact_model_known is a const false in the schema;
+    registry.record_updated_at and assignment.registered_at are documented as always null
+    because IEEE publishes no such dates; vendor_location.parse_confidence and
+    device.confidence are graded enums; vendor.canonical_name is documented as a mechanical
+    slug that never merges subsidiaries or spelling variants. An agent can therefore tell
+    a low-confidence inference from a registry fact without a second source.

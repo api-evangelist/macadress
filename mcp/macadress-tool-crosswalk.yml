@@ -1,0 +1,83 @@
+generated: '2026-08-28'
+method: derived
+source: >
+  openapi/macadress-openapi.yaml (operationIds) bound to the published MCP tool table at
+  https://macadress.com/mcp. The live MCP tools/list is bearer-gated (401), so bindings are
+  by name + published semantics, not by comparing live inputSchemas to OpenAPI parameters.
+surfaces:
+  openapi:
+    file: openapi/macadress-openapi.yaml
+    source_url: https://macadress.com/static/openapi.yaml?v=ceee2d51
+    operations: 4
+    gated: false
+  mcp:
+    url: https://mcp.macadress.com/mcp
+    tools: 4
+    gated: true
+    gate: 'HTTP 401 "no bearer token" on tools/list'
+  graphql:
+    present: false
+    note: 'https://api.macadress.com/graphql returns 404. No GraphQL surface.'
+crosswalk:
+- tool: lookup_mac
+  category: lookup
+  rest:
+  - lookupMAC
+  binding: 1:1
+  confidence: high
+  note: >
+    GET /v1/mac/{mac}. The MCP page states the tool returns "everything else the REST API
+    returns", i.e. the same Result schema. Real inputSchema not introspectable while gated;
+    the REST operation's single required path parameter (mac, any common notation) is the
+    faithful stand-in.
+- tool: batch_lookup_mac
+  category: lookup
+  rest:
+  - lookupMACBatch
+  binding: 1:1
+  confidence: high
+  note: >
+    POST /v1/mac/batch, up to 100 addresses, one result per input in submitted order.
+    Same 100-item cap stated on both surfaces.
+- tool: search_vendors
+  category: directory
+  rest:
+  - searchVendors
+  binding: 1:1
+  confidence: high
+  note: >
+    GET /v1/vendors. Both surfaces describe the identical filter set: organization-name
+    substring plus ISO 3166-1 alpha-2 country.
+mcp_only:
+- tool: get_vendor_block
+  reason: >
+    No public REST operation returns a single registered block by its ID, nor the other
+    blocks held by the same organization. The published OpenAPI's only vendor operation is
+    the searchVendors list. The equivalent human surface is the web page
+    https://macadress.com/vendor/{prefix-hex}; the Result schema's vendor.lookup_url field
+    points at exactly that page, which is the closest REST-side analogue and is a web page,
+    not a JSON endpoint.
+rest_only:
+- operationId: healthz
+  reason: >
+    GET /v1/healthz, liveness only, security [] (no key) and uncounted against quota. The
+    MCP page states explicitly that there is no free/unbilled tool equivalent to healthz.
+- operationId: null
+  path: POST /v1/mac/extract
+  reason: >
+    DOCUMENTED BUT UNSPECIFIED. https://macadress.com/docs fully documents a third lookup
+    endpoint that scans free-form text (arp -a output, log dumps, DHCP leases) for MAC
+    addresses and looks up every one found, up to 100, with a truncated flag. It has a
+    human page at https://macadress.com/extract. It is absent from the published OpenAPI
+    and has no MCP tool, so neither a generated client nor an agent can reach it from the
+    machine-readable contract. This is the single largest contract gap on this provider.
+coverage:
+  mcp_tools: 4
+  mcp_tools_bound_to_rest: 3
+  mcp_tools_unbound: 1
+  rest_operations_in_openapi: 4
+  rest_operations_with_a_tool: 3
+  rest_operations_without_a_tool: 1
+  documented_operations_missing_from_openapi: 1
+  bind_rate_mcp: 0.75
+  bind_rate_rest: 0.75

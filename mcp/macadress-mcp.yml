@@ -1,0 +1,87 @@
+generated: '2026-08-28'
+method: searched
+source: https://macadress.com/mcp
+name: macadress.com MCP server
+description: >
+  The same MAC/OUI vendor lookup the REST API serves, exposed as Model Context Protocol
+  tools. Hosted by the provider, Streamable HTTP transport, stateless (no session to
+  manage), authenticated with the same API key as the REST API.
+deployment:
+  mode: remote
+  endpoint: https://mcp.macadress.com/mcp
+  install: ''
+  package: ''
+  auth: api-key
+  verified: probed
+transport: streamable-http
+stateless: true
+authentication:
+  scheme: http bearer
+  header: 'Authorization: Bearer mk_...'
+  note: >
+    No OAuth. The provider documents this as a deliberate choice on
+    https://macadress.com/mcp: "MCP's authorization spec is optional for HTTP transports,
+    not required... Pasting an existing API key works today in every MCP client we're
+    aware of." Neither /.well-known/oauth-authorization-server nor
+    /.well-known/oauth-protected-resource is served on mcp.macadress.com (both 404).
+client_config_example: |
+  {
+    "mcpServers": {
+      "macadress": {
+        "url": "https://mcp.macadress.com/mcp",
+        "headers": { "Authorization": "Bearer mk_your_api_key" }
+      }
+    }
+  }
+x-evidence:
+- fetched: '2026-08-28'
+  url: https://mcp.macadress.com/mcp
+  method: POST
+  body: '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+  http_status: 401
+  response_body: 'no bearer token'
+  reading: >
+    Present and gated. The live tools/list schema requires an authenticated bearer token,
+    so tool inputSchemas below could NOT be introspected; the tool names and descriptions
+    are transcribed from the provider's own published MCP page, not from live introspection.
+- fetched: '2026-08-28'
+  url: https://mcp.macadress.com/mcp
+  method: POST
+  body: '{"jsonrpc":"2.0","id":1,"method":"initialize",...}'
+  http_status: 401
+- fetched: '2026-08-28'
+  url: https://macadress.com/mcp
+  http_status: 200
+  reading: Published tool table, endpoint, transport and auth model.
+tools_source: https://macadress.com/mcp
+tools_schema_status: auth-gated
+tools:
+- name: lookup_mac
+  description: >
+    Look up a single MAC address or OUI: vendor, IEEE assignment type, block range,
+    address capacity, country, transmission/administration type, randomization
+    indicators, derived EUI-64/IPv6 link-local, and everything else the REST API returns.
+  quota: 1 lookup per call
+  input_schema: unknown (auth-gated tools/list)
+- name: batch_lookup_mac
+  description: Same as lookup_mac, for up to 100 addresses in one call.
+  quota: per address resolved
+  input_schema: unknown (auth-gated tools/list)
+- name: search_vendors
+  description: >
+    Search the registered vendor/block directory by organization name substring and/or
+    ISO 3166-1 alpha-2 country code.
+  quota: 1 lookup per call
+  input_schema: unknown (auth-gated tools/list)
+- name: get_vendor_block
+  description: >
+    Full detail on one registered block by its ID, including other blocks registered to
+    the same organization.
+  quota: 1 lookup per call
+  input_schema: unknown (auth-gated tools/list)
+quota_and_limits:
+  note: >
+    Enforced against the same per-plan numbers as the REST API. Each surface runs as its
+    own process and converges its usage count independently rather than sharing one live
+    counter. There is no free/unbilled tool the way GET /v1/healthz is free on REST.
+  reference: rate-limits/macadress-rate-limits.yml
