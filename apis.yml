@@ -4,6 +4,17 @@ description: REST/JSON API, hosted MCP server, and reference data for MAC addres
   block, device category, and randomization confidence. Data synced twice daily from IEEE MA-L/MA-M/MA-S/IAB/CID registries.
   Operated by ApisOS FZE (macadress.com).
 url: https://raw.githubusercontent.com/api-evangelist/mac-address-lookup-find-vendor-oui-amp-device-type/refs/heads/main/apis.yml
+deliveryModel:
+  model: saas
+  open_source: false
+  commercial: true
+  callable_host: false
+  label: Hosted service · you call their endpoint
+  confidence: medium
+  source:
+  - pricing
+  generated: '2026-08-28'
+  method: derived
 created: '2026-08-28'
 modified: '2026-08-28'
 specificationVersion: '0.21'
