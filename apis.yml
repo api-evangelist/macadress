@@ -30,6 +30,19 @@ tags:
 - IEEE OUI Lookup
 - Developer Tools
 - MCP
+- agent-native
+tags_raw:
+- Networking
+- Network Access Control
+- Security
+- SecOps
+- IoT
+- Device Fleet Management
+- MDM
+- Reference Data
+- IEEE OUI Lookup
+- Developer Tools
+- MCP
 - Agent-Native
 apis:
 - name: macadress.com API
@@ -44,6 +57,19 @@ apis:
   humanURL: https://macadress.com/docs
   baseURL: https://api.macadress.com
   tags:
+  - Networking
+  - Network Access Control
+  - Security
+  - SecOps
+  - IoT
+  - Device Fleet Management
+  - MDM
+  - Reference Data
+  - IEEE OUI Lookup
+  - Developer Tools
+  - MCP
+  - agent-native
+  tags_raw:
   - Networking
   - Network Access Control
   - Security
