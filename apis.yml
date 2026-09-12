@@ -131,6 +131,8 @@ generated:
   confidence: 98
   at: '2026-08-28T08:50:06.984Z'
 common:
+- type: Website
+  url: https://www.macadress.com/
 - type: VulnerabilityDisclosure
   url: security/macadress-vulnerability-disclosure.yml
 - type: DomainSecurity
