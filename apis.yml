@@ -60,67 +60,63 @@ tags_raw:
 - MCP
 - Agent-Native
 apis:
-- name: macadress.com API
-  description: 'REST/JSON API for single and batch MAC/OUI lookups, vendor directory search, and health checks. Requires a
-    free API key via Authorization Bearer or api_key query/body.
-
-
-    Live API at api.macadress.com: GET /v1/mac/:mac and POST /v1/mac/batch, answering 401 with an explicit "missing API key"
-    message. Operated by ApisOS FZE. The declared apis.json 404s, but an OpenAPI 3.1.0 IS published -- at macadress.com/static/openapi.yaml?v=ceee2d51,
-    a versioned asset path that probing the conventional locations never finds. llms.txt is served and is where the real endpoints
-    and the MCP subdomain are named. Verified 2026-08-28.'
+- aid: macadress:macadress-healthz-api
+  name: 'MAC Address Lookup: Find Vendor, OUI & Device Type Healthz API'
+  description: >-
+    The Healthz API from MAC Address Lookup: Find Vendor, OUI & Device Type — 1 operation(s) for healthz.
   humanURL: https://macadress.com/docs
   baseURL: https://api.macadress.com
   tags:
-  - Networking
-  - Network Access Control
-  - Security
-  - SecOps
-  - IoT
-  - Device Fleet Management
-  - MDM
-  - Reference Data
-  - IEEE OUI Lookup
-  - Developer Tools
-  - MCP
-  - agent-native
-  tags_raw:
-  - Networking
-  - Network Access Control
-  - Security
-  - SecOps
-  - IoT
-  - Device Fleet Management
-  - MDM
-  - Reference Data
-  - IEEE OUI Lookup
-  - Developer Tools
-  - MCP
-  - Agent-Native
+  - Healthz
   properties:
   - type: OpenAPI
-    url: openapi/macadress-openapi.yaml
-    description: 'Saved verbatim from https://macadress.com/static/openapi.yaml?v=ceee2d51 (HTTP 200, application/yaml). OpenAPI
-      3.1.0, four operations, all with operationId, summary, declared 2xx/4xx responses and reusable components. NOTE: the
-      same URL served two different documents seven minutes apart on 2026-08-28 (a new x-added-in-version 1.2 field appeared);
-      the ?v= token did not change, so it is not a content hash. This repo holds the later copy. See lifecycle/macadress-lifecycle.yml.'
+    url: openapi/macadress-healthz-api-openapi.yml
   - type: Documentation
     url: https://macadress.com/docs
   - type: LLMsTxt
     url: https://macadress.com/llms.txt
-  - type: MCPServer
-    url: https://mcp.macadress.com/mcp
-    description: The endpoint is on the mcp. SUBDOMAIN. macadress.com/mcp is the documentation page and answers 405 to POST
-      -- probing it as the endpoint reads as absence. Streamable HTTP, stateless; returns 401 "no bearer token" unauthenticated,
-      i.e. present and gated. Verified 2026-08-28.
-  - type: Overlay
-    url: overlays/macadress-openapi-overlay.yaml
   - type: APIReference
     url: https://macadress.com/docs
   - type: Examples
     url: examples/macadress-lookup-mac-example.json
-    description: 'Five request/response pairs: three transcribed verbatim from the provider docs, two observed live on 2026-08-28
-      (the unmetered healthz 200 and the unauthenticated 401 envelope).'
+- aid: macadress:macadress-mac-api
+  name: 'MAC Address Lookup: Find Vendor, OUI & Device Type Mac API'
+  description: >-
+    The Mac API from MAC Address Lookup: Find Vendor, OUI & Device Type — 2 operation(s) for mac.
+  humanURL: https://macadress.com/docs
+  baseURL: https://api.macadress.com
+  tags:
+  - Mac
+  properties:
+  - type: OpenAPI
+    url: openapi/macadress-mac-api-openapi.yml
+  - type: Documentation
+    url: https://macadress.com/docs
+  - type: LLMsTxt
+    url: https://macadress.com/llms.txt
+  - type: APIReference
+    url: https://macadress.com/docs
+  - type: Examples
+    url: examples/macadress-lookup-mac-example.json
+- aid: macadress:macadress-vendors-api
+  name: 'MAC Address Lookup: Find Vendor, OUI & Device Type Vendors API'
+  description: >-
+    The Vendors API from MAC Address Lookup: Find Vendor, OUI & Device Type — 1 operation(s) for vendors.
+  humanURL: https://macadress.com/docs
+  baseURL: https://api.macadress.com
+  tags:
+  - Vendors
+  properties:
+  - type: OpenAPI
+    url: openapi/macadress-vendors-api-openapi.yml
+  - type: Documentation
+    url: https://macadress.com/docs
+  - type: LLMsTxt
+    url: https://macadress.com/llms.txt
+  - type: APIReference
+    url: https://macadress.com/docs
+  - type: Examples
+    url: examples/macadress-lookup-mac-example.json
 maintainers:
 - FN: ApisOS FZE
   url: https://macadress.com
@@ -131,6 +127,10 @@ generated:
   confidence: 98
   at: '2026-08-28T08:50:06.984Z'
 common:
+- type: MCPServer
+  url: https://mcp.macadress.com/mcp
+- type: Overlay
+  url: overlays/macadress-openapi-overlay.yaml
 - type: Website
   url: https://www.macadress.com/
 - type: VulnerabilityDisclosure
