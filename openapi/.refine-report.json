@@ -1,0 +1,31 @@
+{
+  "provider": "macadress",
+  "sources": [
+    "_original/macadress-openapi.yaml"
+  ],
+  "outputs": [
+    "macadress-healthz-api-openapi.yml",
+    "macadress-mac-api-openapi.yml",
+    "macadress-vendors-api-openapi.yml"
+  ],
+  "archived": [],
+  "errors": [],
+  "warnings": [],
+  "notes": [
+    "sourced from openapi/_original/ (1 archived document(s)); previously refined output at the top level was skipped rather than re-split",
+    "macadress-openapi.yaml: upgraded openapi 3.1.0 -> OpenAPI 3.2.0",
+    "macadress-openapi.yaml: tagged paths GET /v1/mac/{mac} -> Mac",
+    "macadress-openapi.yaml: tagged paths POST /v1/mac/batch -> Mac",
+    "macadress-openapi.yaml: tagged paths GET /v1/vendors -> Vendors",
+    "macadress-openapi.yaml: tagged paths GET /v1/healthz -> Healthz",
+    "macadress-openapi.yaml: declared missing tag: Healthz",
+    "macadress-openapi.yaml: declared missing tag: Mac",
+    "macadress-openapi.yaml: declared missing tag: Vendors",
+    "apis.yml register: already-registered"
+  ],
+  "skipped": [
+    "macadress-healthz-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "macadress-mac-api-openapi.yml: previously refined output, superseded by openapi/_original/",
+    "macadress-vendors-api-openapi.yml: previously refined output, superseded by openapi/_original/"
+  ]
+}
