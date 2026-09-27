@@ -45,7 +45,7 @@ tags:
 - IEEE OUI Lookup
 - Developer Tools
 - MCP
-- agent-native
+- Agent-Native
 tags_raw:
 - Networking
 - Network Access Control
@@ -59,6 +59,7 @@ tags_raw:
 - Developer Tools
 - MCP
 - Agent-Native
+- agent-native
 apis:
 - aid: macadress:macadress-healthz-api
   name: 'MAC Address Lookup: Find Vendor, OUI & Device Type Healthz API'

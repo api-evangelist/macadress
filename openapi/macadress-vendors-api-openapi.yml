@@ -85,8 +85,8 @@ components:
       schema:
         type: string
   responses:
-    Unauthorized:
-      description: Missing or invalid API key
+    RateLimited:
+      description: Requests-per-minute limit exceeded for the authenticated plan
       content:
         application/json:
           schema:
@@ -94,8 +94,8 @@ components:
             properties:
               error:
                 type: string
-    RateLimited:
-      description: Requests-per-minute limit exceeded for the authenticated plan
+    Unauthorized:
+      description: Missing or invalid API key
       content:
         application/json:
           schema:
