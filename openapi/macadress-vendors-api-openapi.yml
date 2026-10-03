@@ -62,38 +62,7 @@ paths:
       tags:
       - Vendors
 components:
-  headers:
-    XRateLimitReset:
-      description: Seconds until the current window's usage resets.
-      schema:
-        type: integer
-    XRateLimitRemaining:
-      description: Requests remaining in the current sliding window.
-      schema:
-        type: integer
-    XDataVersion:
-      description: Date (UTC) the underlying vendor database last synced successfully. Same value as meta.database_version.
-      schema:
-        type: string
-        format: date
-    XRateLimitLimit:
-      description: Requests-per-minute cap for the authenticated plan.
-      schema:
-        type: integer
-    XRequestId:
-      description: Per-request identifier, present on every response including errors.
-      schema:
-        type: string
   responses:
-    RateLimited:
-      description: Requests-per-minute limit exceeded for the authenticated plan
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
     Unauthorized:
       description: Missing or invalid API key
       content:
@@ -103,18 +72,38 @@ components:
             properties:
               error:
                 type: string
+    RateLimited:
+      description: Requests-per-minute limit exceeded for the authenticated plan
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+  headers:
+    XRateLimitLimit:
+      description: Requests-per-minute cap for the authenticated plan.
+      schema:
+        type: integer
+    XRequestId:
+      description: Per-request identifier, present on every response including errors.
+      schema:
+        type: string
+    XRateLimitReset:
+      description: Seconds until the current window's usage resets.
+      schema:
+        type: integer
+    XDataVersion:
+      description: Date (UTC) the underlying vendor database last synced successfully. Same value as meta.database_version.
+      schema:
+        type: string
+        format: date
+    XRateLimitRemaining:
+      description: Requests remaining in the current sliding window.
+      schema:
+        type: integer
   schemas:
-    VendorSearchResult:
-      type: object
-      properties:
-        total:
-          type: integer
-          description: How many blocks match
-          independent of the limit applied.: null
-        blocks:
-          type: array
-          items:
-            $ref: '#/components/schemas/VendorBlock'
     VendorBlock:
       type: object
       description: One IEEE-assigned MAC/OUI prefix block, as returned by /v1/vendors.
@@ -153,6 +142,17 @@ components:
         last_changed_at:
           type: string
           format: date-time
+    VendorSearchResult:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: How many blocks match
+          independent of the limit applied.: null
+        blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/VendorBlock'
   securitySchemes:
     apiKeyHeader:
       type: http
