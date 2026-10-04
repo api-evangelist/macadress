@@ -62,16 +62,29 @@ paths:
       tags:
       - Vendors
 components:
+  headers:
+    XRateLimitRemaining:
+      description: Requests remaining in the current sliding window.
+      schema:
+        type: integer
+    XRateLimitReset:
+      description: Seconds until the current window's usage resets.
+      schema:
+        type: integer
+    XRateLimitLimit:
+      description: Requests-per-minute cap for the authenticated plan.
+      schema:
+        type: integer
+    XDataVersion:
+      description: Date (UTC) the underlying vendor database last synced successfully. Same value as meta.database_version.
+      schema:
+        type: string
+        format: date
+    XRequestId:
+      description: Per-request identifier, present on every response including errors.
+      schema:
+        type: string
   responses:
-    Unauthorized:
-      description: Missing or invalid API key
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
     RateLimited:
       description: Requests-per-minute limit exceeded for the authenticated plan
       content:
@@ -81,28 +94,15 @@ components:
             properties:
               error:
                 type: string
-  headers:
-    XRateLimitLimit:
-      description: Requests-per-minute cap for the authenticated plan.
-      schema:
-        type: integer
-    XRequestId:
-      description: Per-request identifier, present on every response including errors.
-      schema:
-        type: string
-    XRateLimitReset:
-      description: Seconds until the current window's usage resets.
-      schema:
-        type: integer
-    XDataVersion:
-      description: Date (UTC) the underlying vendor database last synced successfully. Same value as meta.database_version.
-      schema:
-        type: string
-        format: date
-    XRateLimitRemaining:
-      description: Requests remaining in the current sliding window.
-      schema:
-        type: integer
+    Unauthorized:
+      description: Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
   schemas:
     VendorBlock:
       type: object

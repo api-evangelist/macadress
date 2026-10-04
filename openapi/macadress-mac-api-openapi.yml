@@ -118,16 +118,29 @@ paths:
       tags:
       - Mac
 components:
+  headers:
+    XRateLimitRemaining:
+      description: Requests remaining in the current sliding window.
+      schema:
+        type: integer
+    XRateLimitReset:
+      description: Seconds until the current window's usage resets.
+      schema:
+        type: integer
+    XRateLimitLimit:
+      description: Requests-per-minute cap for the authenticated plan.
+      schema:
+        type: integer
+    XDataVersion:
+      description: Date (UTC) the underlying vendor database last synced successfully. Same value as meta.database_version.
+      schema:
+        type: string
+        format: date
+    XRequestId:
+      description: Per-request identifier, present on every response including errors.
+      schema:
+        type: string
   responses:
-    Unauthorized:
-      description: Missing or invalid API key
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
     RateLimited:
       description: Requests-per-minute limit exceeded for the authenticated plan
       content:
@@ -137,7 +150,27 @@ components:
             properties:
               error:
                 type: string
+    Unauthorized:
+      description: Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
   schemas:
+    BatchItem:
+      allOf:
+      - $ref: '#/components/schemas/Result'
+      - type: object
+        properties:
+          input:
+            type: string
+            description: The original input string as submitted.
+          error:
+            type: string
+            description: Present only when this entry failed to resolve.
     ParseErrorBody:
       type: object
       properties:
@@ -149,13 +182,6 @@ components:
           type: string
         request_id:
           type: string
-    ConfidenceNoneLowMediumHigh:
-      type: string
-      enum:
-      - none
-      - low
-      - medium
-      - high
     Result:
       type: object
       description: 'The x-added-in-version extension on a property marks it as added after the original v1 shape shipped; every such field is nullable or safely defaulted.
@@ -600,6 +626,13 @@ components:
               format: date-time
             cached:
               type: boolean
+    ConfidenceNoneLowMediumHigh:
+      type: string
+      enum:
+      - none
+      - low
+      - medium
+      - high
     DeviceCategory:
       type: string
       description: 'Controlled taxonomy. "unknown" when the vendor is too broad or no vendor profile exists in this deployment''s starter dataset: most registered organizations fall here today.
@@ -630,39 +663,6 @@ components:
       - network_interface
       - consumer_electronics
       - unknown
-    BatchItem:
-      allOf:
-      - $ref: '#/components/schemas/Result'
-      - type: object
-        properties:
-          input:
-            type: string
-            description: The original input string as submitted.
-          error:
-            type: string
-            description: Present only when this entry failed to resolve.
-  headers:
-    XRequestId:
-      description: Per-request identifier, present on every response including errors.
-      schema:
-        type: string
-    XRateLimitLimit:
-      description: Requests-per-minute cap for the authenticated plan.
-      schema:
-        type: integer
-    XRateLimitReset:
-      description: Seconds until the current window's usage resets.
-      schema:
-        type: integer
-    XDataVersion:
-      description: Date (UTC) the underlying vendor database last synced successfully. Same value as meta.database_version.
-      schema:
-        type: string
-        format: date
-    XRateLimitRemaining:
-      description: Requests remaining in the current sliding window.
-      schema:
-        type: integer
   securitySchemes:
     apiKeyHeader:
       type: http
