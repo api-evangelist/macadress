@@ -88,3 +88,39 @@ plans:
 positioning:
   - 'Paid tiers buy volume, not features: randomization confidence, IEEE 802c SLAP classification and EUI-64/IPv6 derivation are on every plan including Free.'
   - 'Every plan requires an API key; only the browser web tool at macadress.com is account-free.'
+x-canonical:
+  generated: '2026-10-08'
+  vocabulary: all/0-working/economics/plans-canonical.yml
+  models:
+  - free
+  - subscription
+  units: []
+  plans:
+  - name: Free
+    access: other
+    model: free
+    model_how: derived
+    units: []
+    periods:
+    - month
+  - name: Growth
+    access: other
+    model: subscription
+    model_how: derived
+    units: []
+    periods:
+    - month
+  - name: Scale
+    access: other
+    model: subscription
+    model_how: derived
+    units: []
+    periods:
+    - month
+  - name: Self-hosted
+    access: other
+    model: subscription
+    model_how: derived
+    units: []
+    periods:
+    - year
