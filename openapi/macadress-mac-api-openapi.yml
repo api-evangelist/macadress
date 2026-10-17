@@ -119,16 +119,16 @@ paths:
       - Mac
 components:
   headers:
+    XRateLimitLimit:
+      description: Requests-per-minute cap for the authenticated plan.
+      schema:
+        type: integer
     XRateLimitRemaining:
       description: Requests remaining in the current sliding window.
       schema:
         type: integer
     XRateLimitReset:
       description: Seconds until the current window's usage resets.
-      schema:
-        type: integer
-    XRateLimitLimit:
-      description: Requests-per-minute cap for the authenticated plan.
       schema:
         type: integer
     XDataVersion:
@@ -140,37 +140,44 @@ components:
       description: Per-request identifier, present on every response including errors.
       schema:
         type: string
-  responses:
-    RateLimited:
-      description: Requests-per-minute limit exceeded for the authenticated plan
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
-    Unauthorized:
-      description: Missing or invalid API key
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
   schemas:
-    BatchItem:
-      allOf:
-      - $ref: '#/components/schemas/Result'
-      - type: object
-        properties:
-          input:
-            type: string
-            description: The original input string as submitted.
-          error:
-            type: string
-            description: Present only when this entry failed to resolve.
+    ConfidenceNoneLowMediumHigh:
+      type: string
+      enum:
+      - none
+      - low
+      - medium
+      - high
+    DeviceCategory:
+      type: string
+      description: 'Controlled taxonomy. "unknown" when the vendor is too broad or no vendor profile exists in this deployment''s starter dataset: most registered organizations fall here today.
+
+        '
+      enum:
+      - computer
+      - smartphone
+      - tablet
+      - router
+      - switch
+      - wireless_access_point
+      - firewall
+      - server
+      - storage
+      - printer
+      - camera
+      - smart_tv
+      - media_device
+      - gaming_console
+      - iot
+      - embedded_device
+      - industrial
+      - medical
+      - automotive
+      - virtual_machine
+      - container
+      - network_interface
+      - consumer_electronics
+      - unknown
     ParseErrorBody:
       type: object
       properties:
@@ -182,6 +189,17 @@ components:
           type: string
         request_id:
           type: string
+    BatchItem:
+      allOf:
+      - $ref: '#/components/schemas/Result'
+      - type: object
+        properties:
+          input:
+            type: string
+            description: The original input string as submitted.
+          error:
+            type: string
+            description: Present only when this entry failed to resolve.
     Result:
       type: object
       description: 'The x-added-in-version extension on a property marks it as added after the original v1 shape shipped; every such field is nullable or safely defaulted.
@@ -626,43 +644,25 @@ components:
               format: date-time
             cached:
               type: boolean
-    ConfidenceNoneLowMediumHigh:
-      type: string
-      enum:
-      - none
-      - low
-      - medium
-      - high
-    DeviceCategory:
-      type: string
-      description: 'Controlled taxonomy. "unknown" when the vendor is too broad or no vendor profile exists in this deployment''s starter dataset: most registered organizations fall here today.
-
-        '
-      enum:
-      - computer
-      - smartphone
-      - tablet
-      - router
-      - switch
-      - wireless_access_point
-      - firewall
-      - server
-      - storage
-      - printer
-      - camera
-      - smart_tv
-      - media_device
-      - gaming_console
-      - iot
-      - embedded_device
-      - industrial
-      - medical
-      - automotive
-      - virtual_machine
-      - container
-      - network_interface
-      - consumer_electronics
-      - unknown
+  responses:
+    RateLimited:
+      description: Requests-per-minute limit exceeded for the authenticated plan
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+    Unauthorized:
+      description: Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
   securitySchemes:
     apiKeyHeader:
       type: http
