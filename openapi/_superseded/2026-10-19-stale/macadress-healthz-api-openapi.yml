@@ -1,0 +1,58 @@
+openapi: 3.2.0
+info:
+  title: macadress.com Healthz API
+  version: '1.0'
+  description: 'MAC address / OUI vendor lookup. Every field on the lookup response beyond the original v1 set (see the x-added-in-version extension on each) is additive and nullable: existing integrations reading only the original fields are unaffected by new ones appearing alongside them.'
+  contact:
+    url: https://macadress.com/docs
+  license:
+    name: See https://macadress.com/terms
+servers:
+- url: https://api.macadress.com
+security:
+- apiKeyHeader: []
+- apiKeyQuery: []
+tags:
+- name: Healthz
+paths:
+  /v1/healthz:
+    get:
+      operationId: healthz
+      summary: Liveness check (not counted against any quota, no API key required)
+      security: []
+      responses:
+        '200':
+          description: Database reachable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                    - ok
+        '503':
+          description: Database unreachable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+      tags:
+      - Healthz
+components:
+  securitySchemes:
+    apiKeyHeader:
+      type: http
+      scheme: bearer
+      description: 'Authorization: Bearer mk_...'
+    apiKeyQuery:
+      type: apiKey
+      in: query
+      name: api_key
+externalDocs:
+  description: Full documentation with request/response examples
+  url: https://macadress.com/docs

@@ -1,0 +1,79 @@
+openapi: 3.2.0
+info:
+  title: macadress.com Vendor API
+  version: '1.0'
+  description: 'MAC address / OUI vendor lookup. Every field on the lookup response beyond the original v1 set (see the x-added-in-version extension on each) is additive and nullable: existing integrations reading only the original fields are unaffected by new ones appearing alongside them.'
+  contact:
+    url: https://macadress.com/docs
+  license:
+    name: See https://macadress.com/terms
+servers:
+- url: https://api.macadress.com
+security:
+- apiKeyHeader: []
+- apiKeyQuery: []
+tags:
+- name: Vendor
+paths:
+  /v1/vendor/{mac}:
+    get:
+      operationId: vendorName
+      summary: Vendor name only, plain text, no API key required
+      security: []
+      description: 'The entire response body is the registered vendor name as text/plain, nothing else. Free and keyless: 1,000 lookups per UTC calendar day per client IP, plus a 60 requests/minute ceiling. Sending a valid API key lifts the daily cap to your plan''s cycle quota (the first 1,000/day still don''t draw it down) and applies your plan''s requests/minute instead of the anonymous 60. Responses set ''Access-Control-Allow-Origin: *'' and a cacheable Cache-Control.'
+      parameters:
+      - name: mac
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Any common format (see GET /v1/mac/{mac}); a bare OUI also works.
+        example: 00:03:93:AB:12:34
+      responses:
+        '200':
+          description: Registered vendor organization name
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Apple, Inc.
+        '400':
+          description: Input did not parse as a MAC address. Body is "invalid mac address".
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: invalid mac address
+        '404':
+          description: 'Valid address with no vendor name to return. Body is "not registered" (prefix not in the current IEEE snapshot, or a private block) or "locally administered" (a locally administered address, the common privacy-randomized case).
+
+            '
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: not registered
+        '429':
+          description: 'Daily grant used up (anonymous, with a Retry-After header) or the 60/minute burst exceeded; body "rate limited". For a keyed caller past the grant with no cycle quota left, body "over quota".
+
+            '
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: rate limited
+      tags:
+      - Vendor
+components:
+  securitySchemes:
+    apiKeyHeader:
+      type: http
+      scheme: bearer
+      description: 'Authorization: Bearer mk_...'
+    apiKeyQuery:
+      type: apiKey
+      in: query
+      name: api_key
+externalDocs:
+  description: Full documentation with request/response examples
+  url: https://macadress.com/docs

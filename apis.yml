@@ -118,6 +118,17 @@ apis:
     url: https://macadress.com/docs
   - type: Examples
     url: examples/macadress-lookup-mac-example.json
+- aid: macadress:macadress-vendor-api
+  name: 'MAC Address Lookup: Find Vendor, OUI & Device Type Vendor API'
+  description: >-
+    The Vendor API from MAC Address Lookup: Find Vendor, OUI & Device Type — 1 operation(s) for vendor.
+  humanURL: https://macadress.com/docs
+  baseURL: https://api.macadress.com
+  tags:
+  - Vendor
+  properties:
+  - type: OpenAPI
+    url: openapi/macadress-vendor-api-openapi.yml
 maintainers:
 - FN: ApisOS FZE
   url: https://macadress.com

@@ -1,0 +1,655 @@
+openapi: 3.1.0
+info:
+  title: macadress.com API
+  version: "1.0"
+  description: >
+    MAC address / OUI vendor lookup. Every field on the lookup response
+    beyond the original v1 set (see the x-added-in-version extension on
+    each) is additive and nullable: existing integrations reading only the
+    original fields are unaffected by new ones appearing alongside them.
+  contact:
+    url: https://macadress.com/docs
+  license:
+    name: See https://macadress.com/terms
+externalDocs:
+  description: Full documentation with request/response examples
+  url: https://macadress.com/docs
+servers:
+  - url: https://api.macadress.com
+
+security:
+  - apiKeyHeader: []
+  - apiKeyQuery: []
+
+paths:
+  /v1/mac/{mac}:
+    get:
+      operationId: lookupMAC
+      summary: Look up a single MAC address
+      parameters:
+        - name: mac
+          in: path
+          required: true
+          schema: { type: string }
+          description: >
+            Any common format: colon, dash, dot-grouped, space-separated, or
+            bare hex (case-insensitive).
+          example: "00:03:93:AB:12:34"
+      responses:
+        "200":
+          description: Lookup result (present whether or not the address is registered)
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/XRequestId" }
+            X-Data-Version: { $ref: "#/components/headers/XDataVersion" }
+            X-RateLimit-Limit: { $ref: "#/components/headers/XRateLimitLimit" }
+            X-RateLimit-Remaining: { $ref: "#/components/headers/XRateLimitRemaining" }
+            X-RateLimit-Reset: { $ref: "#/components/headers/XRateLimitReset" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Result" }
+        "400":
+          description: Input did not parse as a MAC address
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ParseErrorBody" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/mac/batch:
+    post:
+      operationId: lookupMACBatch
+      summary: Look up up to 100 MAC addresses in one request
+      description: >
+        One HTTP call, but each address that resolves is billed against
+        your cycle quota separately: 100 addresses in one batch draws down
+        100 lookups, the same as making 100 separate calls to
+        GET /v1/mac/{mac} would. The requests-per-minute rate limit is the
+        opposite - this whole call counts once against it, not once per
+        address.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [macs]
+              properties:
+                macs:
+                  type: array
+                  maxItems: 100
+                  items: { type: string }
+                api_key:
+                  type: string
+                  description: Alternative to the Authorization header or ?api_key= query param.
+      responses:
+        "200":
+          description: One result per input, in the same order, each with the same shape as GET /v1/mac/{mac}
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/XRequestId" }
+            X-Data-Version: { $ref: "#/components/headers/XDataVersion" }
+            X-RateLimit-Limit: { $ref: "#/components/headers/XRateLimitLimit" }
+            X-RateLimit-Remaining: { $ref: "#/components/headers/XRateLimitRemaining" }
+            X-RateLimit-Reset: { $ref: "#/components/headers/XRateLimitReset" }
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+                  results:
+                    type: array
+                    items: { $ref: "#/components/schemas/BatchItem" }
+        "400":
+          description: Malformed request body, empty macs array, or more than 100 entries
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ParseErrorBody" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/mac/extract:
+    post:
+      operationId: extractMACs
+      summary: Find and look up every MAC address in a block of free-form text
+      description: >
+        Scans text for anything that looks like a MAC address (colon/dash-
+        separated or Cisco dot-grouped) and looks up every one found, up to
+        100 distinct addresses per request - useful for arp -a output, log
+        dumps, or DHCP leases, anywhere you have a blob of text instead of
+        a clean list of addresses. Addresses are deduplicated and returned
+        in first-seen order; a request with more than 100 distinct
+        addresses looks up only the first 100 and sets truncated to true
+        rather than rejecting the request. Billing matches
+        POST /v1/mac/batch: one HTTP call, but each address found and
+        resolved is billed against your cycle quota separately, while the
+        requests-per-minute rate limit still counts this whole call once.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+                  description: Free-form text to scan for MAC addresses.
+                api_key:
+                  type: string
+                  description: Alternative to the Authorization header or ?api_key= query param.
+      responses:
+        "200":
+          description: One result per distinct address found, each with the same shape as GET /v1/mac/{mac}
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/XRequestId" }
+            X-Data-Version: { $ref: "#/components/headers/XDataVersion" }
+            X-RateLimit-Limit: { $ref: "#/components/headers/XRateLimitLimit" }
+            X-RateLimit-Remaining: { $ref: "#/components/headers/XRateLimitRemaining" }
+            X-RateLimit-Reset: { $ref: "#/components/headers/XRateLimitReset" }
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+                  truncated:
+                    type: boolean
+                    description: True if the text contained more than 100 distinct addresses; only the first 100 were looked up.
+                  results:
+                    type: array
+                    items: { $ref: "#/components/schemas/BatchItem" }
+        "400":
+          description: Malformed request body or empty text
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ParseErrorBody" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/vendor/{mac}:
+    get:
+      operationId: vendorName
+      summary: Vendor name only, plain text, no API key required
+      security: []
+      description: >
+        The entire response body is the registered vendor name as
+        text/plain, nothing else. Free and keyless: 1,000 lookups per UTC
+        calendar day per client IP, plus a 60 requests/minute ceiling.
+        Sending a valid API key lifts the daily cap to your plan's cycle
+        quota (the first 1,000/day still don't draw it down) and applies
+        your plan's requests/minute instead of the anonymous 60. Responses
+        set 'Access-Control-Allow-Origin: *' and a cacheable Cache-Control.
+      parameters:
+        - name: mac
+          in: path
+          required: true
+          schema: { type: string }
+          description: Any common format (see GET /v1/mac/{mac}); a bare OUI also works.
+          example: "00:03:93:AB:12:34"
+      responses:
+        "200":
+          description: Registered vendor organization name
+          content:
+            text/plain:
+              schema: { type: string, example: "Apple, Inc." }
+        "400":
+          description: Input did not parse as a MAC address. Body is "invalid mac address".
+          content:
+            text/plain:
+              schema: { type: string, example: "invalid mac address" }
+        "404":
+          description: >
+            Valid address with no vendor name to return. Body is "not
+            registered" (prefix not in the current IEEE snapshot, or a
+            private block) or "locally administered" (a locally
+            administered address, the common privacy-randomized case).
+          content:
+            text/plain:
+              schema: { type: string, example: "not registered" }
+        "429":
+          description: >
+            Daily grant used up (anonymous, with a Retry-After header) or
+            the 60/minute burst exceeded; body "rate limited". For a keyed
+            caller past the grant with no cycle quota left, body "over
+            quota".
+          content:
+            text/plain:
+              schema: { type: string, example: "rate limited" }
+
+  /v1/vendors:
+    get:
+      operationId: searchVendors
+      summary: Search the registered vendor/block directory
+      parameters:
+        - name: query
+          in: query
+          schema: { type: string }
+          description: Substring match against organization name, case-insensitive.
+        - name: country
+          in: query
+          schema: { type: string }
+          description: Exact ISO 3166-1 alpha-2 code, e.g. US, DE, JP.
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10, maximum: 50 }
+          description: Max results to return.
+      responses:
+        "200":
+          description: Matching non-private blocks. Counts as one call against the plan quota.
+          headers:
+            X-Request-Id: { $ref: "#/components/headers/XRequestId" }
+            X-Data-Version: { $ref: "#/components/headers/XDataVersion" }
+            X-RateLimit-Limit: { $ref: "#/components/headers/XRateLimitLimit" }
+            X-RateLimit-Remaining: { $ref: "#/components/headers/XRateLimitRemaining" }
+            X-RateLimit-Reset: { $ref: "#/components/headers/XRateLimitReset" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VendorSearchResult" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/healthz:
+    get:
+      operationId: healthz
+      summary: Liveness check (not counted against any quota, no API key required)
+      security: []
+      responses:
+        "200":
+          description: Database reachable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { status: { type: string, enum: [ok] } }
+        "503":
+          description: Database unreachable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { error: { type: string } }
+
+components:
+  securitySchemes:
+    apiKeyHeader:
+      type: http
+      scheme: bearer
+      description: 'Authorization: Bearer mk_...'
+    apiKeyQuery:
+      type: apiKey
+      in: query
+      name: api_key
+
+  headers:
+    XRequestId:
+      description: Per-request identifier, present on every response including errors.
+      schema: { type: string }
+    XDataVersion:
+      description: Date (UTC) the underlying vendor database last synced successfully. Same value as meta.database_version.
+      schema: { type: string, format: date }
+    XRateLimitLimit:
+      description: Requests-per-minute cap for the authenticated plan.
+      schema: { type: integer }
+    XRateLimitRemaining:
+      description: Requests remaining in the current sliding window.
+      schema: { type: integer }
+    XRateLimitReset:
+      description: Seconds until the current window's usage resets.
+      schema: { type: integer }
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            type: object
+            properties: { error: { type: string } }
+    RateLimited:
+      description: Requests-per-minute limit exceeded for the authenticated plan
+      content:
+        application/json:
+          schema:
+            type: object
+            properties: { error: { type: string } }
+
+  schemas:
+    ParseErrorBody:
+      type: object
+      properties:
+        valid: { type: boolean, enum: [false] }
+        error: { type: string }
+        request_id: { type: string }
+
+    ConfidenceNoneLowMediumHigh:
+      type: string
+      enum: [none, low, medium, high]
+
+    VendorBlock:
+      type: object
+      description: One IEEE-assigned MAC/OUI prefix block, as returned by /v1/vendors.
+      properties:
+        prefix_int: { type: integer, description: The block's registered prefix, left-justified into the high bits of a 48-bit value. }
+        mask_bits: { type: integer, enum: [24, 28, 36] }
+        block_type: { type: string, enum: [MA-L, MA-M, MA-S, IAB, CID] }
+        organization: { type: string }
+        address: { type: string }
+        country: { type: string, description: ISO 3166-1 alpha-2, empty if not extracted. }
+        is_private: { type: boolean }
+        first_seen_at: { type: string, format: date-time }
+        last_changed_at: { type: string, format: date-time }
+
+    VendorSearchResult:
+      type: object
+      properties:
+        total: { type: integer, description: How many blocks match, independent of the limit applied. }
+        blocks:
+          type: array
+          items: { $ref: "#/components/schemas/VendorBlock" }
+
+    DeviceCategory:
+      type: string
+      description: >
+        Controlled taxonomy. "unknown" when the vendor is too broad or no
+        vendor profile exists in this deployment's starter dataset: most
+        registered organizations fall here today.
+      enum:
+        - computer
+        - smartphone
+        - tablet
+        - router
+        - switch
+        - wireless_access_point
+        - firewall
+        - server
+        - storage
+        - printer
+        - camera
+        - smart_tv
+        - media_device
+        - gaming_console
+        - iot
+        - embedded_device
+        - industrial
+        - medical
+        - automotive
+        - virtual_machine
+        - container
+        - network_interface
+        - consumer_electronics
+        - unknown
+
+    Result:
+      type: object
+      description: >
+        The x-added-in-version extension on a property marks it as added
+        after the original v1 shape shipped; every such field is nullable
+        or safely defaulted.
+      required:
+        - mac
+        - valid
+        - oui
+        - registered
+        - transmission_type
+        - administration_type
+        - locally_administered
+        - potentially_randomized
+        - randomization_confidence
+        - vendor_lookup_reliable
+        - is_zero
+        - is_broadcast
+        - explanation
+        - is_private
+        - device
+        - virtualization
+        - special_use
+        - vendor_location
+        - randomization
+        - local_vendor_derivation
+        - meta
+      properties:
+        mac: { type: string, description: Canonical colon-separated uppercase form. }
+        valid: { type: boolean }
+        oui:
+          type: string
+          description: Always the first 24 bits of the address itself, regardless of matched block width. See matched_prefix for the complete matched registry block.
+        organization: { type: [string, "null"] }
+        vendor_address: { type: [string, "null"] }
+        country: { type: [string, "null"], description: ISO 3166-1 alpha-2, extracted from vendor_address. }
+        block_type: { type: [string, "null"], enum: [MA-L, MA-M, MA-S, IAB, CID, null] }
+        address_capacity: { type: [integer, "null"] }
+        range_start: { type: [string, "null"] }
+        range_end: { type: [string, "null"] }
+        registered: { type: boolean }
+        transmission_type: { type: string, enum: [unicast, multicast, broadcast] }
+        administration_type: { type: string, enum: [universally_administered, locally_administered] }
+        locally_administered: { type: boolean }
+        slap_quadrant: { type: [string, "null"], enum: [AAI, ELI, reserved, SAI, null] }
+        eui64: { type: [string, "null"] }
+        ipv6_link_local: { type: [string, "null"] }
+        potentially_randomized: { type: boolean }
+        randomization_confidence: { type: string, enum: [none, possible, likely, unlikely] }
+        vendor_lookup_reliable: { type: boolean }
+        is_zero: { type: boolean }
+        is_broadcast: { type: boolean }
+        explanation: { type: string }
+        is_private: { type: boolean, deprecated: true, description: "Use organization === null and vendor_lookup_reliable instead." }
+
+        matched_prefix:
+          type: [string, "null"]
+          x-added-in-version: "1.1"
+          description: The complete registered prefix actually matched, at its real width (colon-separated bytes plus a trailing bare hex nibble for a non-byte-aligned width like /28 or /36). Null when unregistered.
+        prefix_length:
+          type: [integer, "null"]
+          x-added-in-version: "1.1"
+
+        registry:
+          x-added-in-version: "1.1"
+          oneOf:
+            - type: "null"
+            - type: object
+              properties:
+                source: { type: string, enum: [IEEE] }
+                record_type: { type: string, enum: [MA-L, MA-M, MA-S, IAB, CID] }
+                record_updated_at:
+                  type: [string, "null"]
+                  format: date
+                  description: "Always null today: IEEE's public feeds carry no per-record update-date column."
+                database_synced_at: { type: [string, "null"], format: date-time }
+
+        device:
+          x-added-in-version: "1.1"
+          type: object
+          properties:
+            category: { $ref: "#/components/schemas/DeviceCategory" }
+            possible_categories: { type: array, items: { $ref: "#/components/schemas/DeviceCategory" } }
+            confidence: { $ref: "#/components/schemas/ConfidenceNoneLowMediumHigh" }
+            inference_source: { type: [string, "null"], enum: [vendor_profile, null] }
+            exact_model_known: { type: boolean, enum: [false], description: "Always false: a MAC address alone never identifies an exact model." }
+
+        virtualization:
+          x-added-in-version: "1.1"
+          type: object
+          properties:
+            detected: { type: boolean }
+            platform: { type: [string, "null"] }
+            confidence: { type: string, enum: [none, low, high, exact] }
+            signals: { type: array, items: { type: string } }
+
+        special_use:
+          x-added-in-version: "1.1"
+          type: object
+          properties:
+            detected: { type: boolean }
+            type: { type: [string, "null"] }
+            protocol: { type: [string, "null"] }
+            name: { type: [string, "null"] }
+            source: { type: [string, "null"] }
+            confidence: { type: string, enum: [none, high, exact] }
+
+        vendor_location:
+          x-added-in-version: "1.1"
+          type: object
+          properties:
+            raw: { type: [string, "null"] }
+            address_line: { type: [string, "null"] }
+            city: { type: [string, "null"] }
+            region: { type: [string, "null"] }
+            postal_code: { type: [string, "null"] }
+            country_code: { type: [string, "null"] }
+            country_name: { type: [string, "null"] }
+            parse_confidence: { type: string, enum: [none, low, medium] }
+
+        randomization:
+          x-added-in-version: "1.1"
+          type: object
+          description: >
+            Machine-readable explanation of potentially_randomized/
+            randomization_confidence, cross-checked against virtualization
+            and local_vendor_derivation so the three never contradict each
+            other: e.g. a Docker container's address, or one recovered at
+            medium+ confidence via local_vendor_derivation, reports
+            "unlikely" here rather than the bit-pattern-only "likely" a
+            locally administered unicast address gets by default. A
+            registered CID/ELI match reports "none": a real IEEE identity,
+            not a randomization candidate at all.
+          properties:
+            potentially_randomized: { type: boolean }
+            confidence: { type: string, enum: [none, possible, likely, unlikely] }
+            signals: { type: array, items: { type: string } }
+            alternative_explanations: { type: array, items: { type: string } }
+
+        local_vendor_derivation:
+          x-added-in-version: "1.2"
+          type: object
+          description: >
+            Best-effort vendor recovery for a locally administered unicast
+            address, tried as a ranked pipeline (first match wins; every
+            method attempted is listed in methods_tried regardless of
+            outcome): virtualization_prefix (a documented hypervisor/
+            container convention, e.g. Docker's 02:42 bridge driver or
+            QEMU/KVM's 52:54:00, checked both on the address as submitted
+            and on its U/L-cleared counterpart) then ul_bit_clear (clearing
+            the U/L bit yields a prefix registered to a real organization).
+            detected is true only when one of these fires, the address is
+            not already registered (a registered CID/ELI address has its
+            own real identity via the top-level organization field, and is
+            never offered here), it is unicast, it is not an SAI-quadrant
+            protocol address, and its suffix is not all zero. This is never
+            a decode of OS randomization, whose 46 non-fixed bits are set
+            uniformly at random; it is the alternative reading of the same
+            bits.
+          properties:
+            detected: { type: boolean }
+            method: { type: string, enum: ["", virtualization_prefix, ul_bit_clear] }
+            methods_tried:
+              type: array
+              items: { type: string, enum: [virtualization_prefix, ul_bit_clear] }
+              x-added-in-version: "1.3"
+              description: Every method the pipeline attempted, in order, whether or not it fired. Empty when the address was ineligible (see detected's description) and no method ran at all.
+            universal_mac:
+              type: [string, "null"]
+              description: The address actually looked up, i.e. this address with the U/L bit cleared. Null for method virtualization_prefix (nothing was unflipped) or when detected is false.
+            confidence: { type: string, enum: [none, low, medium, high] }
+            likelihood_ratio:
+              type: [number, "null"]
+              x-added-in-version: "1.3"
+              description: >
+                How much more likely this hit is under "a real assignment
+                with the U/L bit set" than under "a uniformly random
+                address that happened to land on an allocated prefix":
+                2^22 (the universal-unicast 24-bit prefix space) divided by
+                however many distinct 24-bit prefixes the registry
+                currently covers. Deliberately not a posterior probability:
+                that needs a prior on how common derived-vs-randomized
+                locally administered addresses are in the wild, which this
+                API does not have, so apply your own. Null when detected is
+                false or the count isn't available.
+            organization: { type: [string, "null"], description: Registered organization behind the cleared prefix. Null when the block is private or nothing was derived. }
+            country: { type: [string, "null"], description: ISO 3166-1 alpha-2 of the derived block. }
+            matched_prefix: { type: [string, "null"] }
+            block_type: { type: [string, "null"], enum: [MA-L, MA-M, MA-S, IAB, CID, null] }
+            registry:
+              type: [string, "null"]
+              x-added-in-version: "1.3"
+              enum: [oui, convention, null]
+              description: "\"oui\": matched_prefix came from the IEEE registry via ul_bit_clear. \"convention\": a virtualization_prefix match with no IEEE registry lookup involved (e.g. Docker's 02:42, which isn't an assigned OUI at all)."
+            vendor_class:
+              type: [string, "null"]
+              x-added-in-version: "1.3"
+              description: >
+                "virtualization" for a virtualization_prefix match;
+                "networking_infrastructure" for a ul_bit_clear match whose
+                organization is network equipment (router/switch/wireless
+                AP/firewall) at medium+ device-classification confidence,
+                the vendor class that raises confidence to "medium" (see
+                confidence's description); otherwise the matched
+                organization's own device category (e.g.
+                "consumer_electronics"), from the same taxonomy as the
+                top-level device.category field. Null when detected is
+                false.
+            lookup_url: { type: [string, "null"], format: uri }
+            device:
+              oneOf:
+                - type: "null"
+                - type: object
+                  description: enrich device-category inference run against the derived organization; same shape as the top-level device object. Null for a virtualization_prefix match (there is no single organization to classify).
+                  properties:
+                    category: { $ref: "#/components/schemas/DeviceCategory" }
+                    possible_categories: { type: array, items: { $ref: "#/components/schemas/DeviceCategory" } }
+                    confidence: { $ref: "#/components/schemas/ConfidenceNoneLowMediumHigh" }
+                    inference_source: { type: [string, "null"], enum: [vendor_profile, null] }
+                    exact_model_known: { type: boolean, enum: [false] }
+            signals: { type: array, items: { type: string }, description: "Deprecated: use signal_details, which carries the same codes plus a human-readable detail. Kept for existing consumers reading plain strings." }
+            signal_details:
+              type: array
+              x-added-in-version: "1.3"
+              items:
+                type: object
+                properties:
+                  code: { type: string }
+                  detail: { type: string }
+
+        assignment:
+          x-added-in-version: "1.1"
+          oneOf:
+            - type: "null"
+            - type: object
+              properties:
+                registered_at:
+                  type: [string, "null"]
+                  description: "Always null: no authoritative IEEE registration date exists in the source feed."
+                first_seen_at: { type: [string, "null"], format: date, description: When this deployment first observed the record, not an IEEE date. }
+                last_changed_at: { type: [string, "null"], format: date }
+
+        vendor:
+          x-added-in-version: "1.1"
+          description: "Conservative canonical identity: a mechanical slug of the exact registered name, never a merge of spelling variants or subsidiaries."
+          oneOf:
+            - type: "null"
+            - type: object
+              properties:
+                id: { type: string }
+                registered_name: { type: string }
+                canonical_name: { type: string }
+                slug: { type: string }
+                block_count: { type: integer }
+                lookup_url: { type: string, format: uri }
+
+        meta:
+          x-added-in-version: "1.1"
+          type: object
+          properties:
+            request_id: { type: string }
+            api_version: { type: string, enum: ["v1"] }
+            database_version: { type: [string, "null"], format: date }
+            processed_at: { type: string, format: date-time }
+            cached: { type: boolean }
+
+    BatchItem:
+      allOf:
+        - { $ref: "#/components/schemas/Result" }
+        - type: object
+          properties:
+            input: { type: string, description: The original input string as submitted. }
+            error: { type: string, description: Present only when this entry failed to resolve. }

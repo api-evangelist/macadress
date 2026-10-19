@@ -63,6 +63,7 @@ paths:
     post:
       operationId: lookupMACBatch
       summary: Look up up to 100 MAC addresses in one request
+      description: 'One HTTP call, but each address that resolves is billed against your cycle quota separately: 100 addresses in one batch draws down 100 lookups, the same as making 100 separate calls to GET /v1/mac/{mac} would. The requests-per-minute rate limit is the opposite - this whole call counts once against it, not once per address.'
       requestBody:
         required: true
         content:
@@ -117,29 +118,67 @@ paths:
           $ref: '#/components/responses/RateLimited'
       tags:
       - Mac
+  /v1/mac/extract:
+    post:
+      operationId: extractMACs
+      summary: Find and look up every MAC address in a block of free-form text
+      description: 'Scans text for anything that looks like a MAC address (colon/dash- separated or Cisco dot-grouped) and looks up every one found, up to 100 distinct addresses per request - useful for arp -a output, log dumps, or DHCP leases, anywhere you have a blob of text instead of a clean list of addresses. Addresses are deduplicated and returned in first-seen order; a request with more than 100 distinct addresses looks up only the first 100 and sets truncated to true rather than rejecting the request. Billing matches POST /v1/mac/batch: one HTTP call, but each address found and resolved is billed against your cycle quota separately, while the requests-per-minute rate limit still counts this whole call once.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - text
+              properties:
+                text:
+                  type: string
+                  description: Free-form text to scan for MAC addresses.
+                api_key:
+                  type: string
+                  description: Alternative to the Authorization header or ?api_key= query param.
+      responses:
+        '200':
+          description: One result per distinct address found, each with the same shape as GET /v1/mac/{mac}
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/XRequestId'
+            X-Data-Version:
+              $ref: '#/components/headers/XDataVersion'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/XRateLimitLimit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/XRateLimitRemaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/XRateLimitReset'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  truncated:
+                    type: boolean
+                    description: True if the text contained more than 100 distinct addresses; only the first 100 were looked up.
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BatchItem'
+        '400':
+          description: Malformed request body or empty text
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParseErrorBody'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+      tags:
+      - Mac
 components:
-  headers:
-    XRateLimitLimit:
-      description: Requests-per-minute cap for the authenticated plan.
-      schema:
-        type: integer
-    XRateLimitRemaining:
-      description: Requests remaining in the current sliding window.
-      schema:
-        type: integer
-    XRateLimitReset:
-      description: Seconds until the current window's usage resets.
-      schema:
-        type: integer
-    XDataVersion:
-      description: Date (UTC) the underlying vendor database last synced successfully. Same value as meta.database_version.
-      schema:
-        type: string
-        format: date
-    XRequestId:
-      description: Per-request identifier, present on every response including errors.
-      schema:
-        type: string
   schemas:
     ConfidenceNoneLowMediumHigh:
       type: string
@@ -178,17 +217,6 @@ components:
       - network_interface
       - consumer_electronics
       - unknown
-    ParseErrorBody:
-      type: object
-      properties:
-        valid:
-          type: boolean
-          enum:
-          - false
-        error:
-          type: string
-        request_id:
-          type: string
     BatchItem:
       allOf:
       - $ref: '#/components/schemas/Result'
@@ -314,6 +342,7 @@ components:
           - none
           - possible
           - likely
+          - unlikely
         vendor_lookup_reliable:
           type: boolean
         is_zero:
@@ -480,7 +509,9 @@ components:
         randomization:
           x-added-in-version: '1.1'
           type: object
-          description: Machine-readable explanation of potentially_randomized/randomization_confidence, cross-checked against virtualization.
+          description: 'Machine-readable explanation of potentially_randomized/ randomization_confidence, cross-checked against virtualization and local_vendor_derivation so the three never contradict each other: e.g. a Docker container''s address, or one recovered at medium+ confidence via local_vendor_derivation, reports "unlikely" here rather than the bit-pattern-only "likely" a locally administered unicast address gets by default. A registered CID/ELI match reports "none": a real IEEE identity, not a randomization candidate at all.
+
+            '
           properties:
             potentially_randomized:
               type: boolean
@@ -490,6 +521,7 @@ components:
               - none
               - possible
               - likely
+              - unlikely
             signals:
               type: array
               items:
@@ -501,7 +533,7 @@ components:
         local_vendor_derivation:
           x-added-in-version: '1.2'
           type: object
-          description: 'Best-effort vendor recovery for a locally administered unicast address that looks formed by setting the U/L bit on a real IEEE assignment (multi-BSSID Wi-Fi APs, Wi-Fi Direct / P2P interfaces, naive MAC spoofing), rather than by OS privacy randomization. detected is true only when clearing the U/L bit yields a prefix that matches a registered block, the address is not already registered, it is unicast, it is not an SAI-quadrant protocol address, and its suffix is not all zero. confidence is always "low": a match is strong evidence the bits came from that OUI, but cannot tell an AP''s own BSSID from a spoofer who chose that OUI. This is never a decode of OS randomization, whose 46 bits are uniformly random.
+          description: 'Best-effort vendor recovery for a locally administered unicast address, tried as a ranked pipeline (first match wins; every method attempted is listed in methods_tried regardless of outcome): virtualization_prefix (a documented hypervisor/ container convention, e.g. Docker''s 02:42 bridge driver or QEMU/KVM''s 52:54:00, checked both on the address as submitted and on its U/L-cleared counterpart) then ul_bit_clear (clearing the U/L bit yields a prefix registered to a real organization). detected is true only when one of these fires, the address is not already registered (a registered CID/ELI address has its own real identity via the top-level organization field, and is never offered here), it is unicast, it is not an SAI-quadrant protocol address, and its suffix is not all zero. This is never a decode of OS randomization, whose 46 non-fixed bits are set uniformly at random; it is the alternative reading of the same bits.
 
             '
           properties:
@@ -511,17 +543,37 @@ components:
               type: string
               enum:
               - ''
-              - ul_bit_flip
+              - virtualization_prefix
+              - ul_bit_clear
+            methods_tried:
+              type: array
+              items:
+                type: string
+                enum:
+                - virtualization_prefix
+                - ul_bit_clear
+              x-added-in-version: '1.3'
+              description: Every method the pipeline attempted, in order, whether or not it fired. Empty when the address was ineligible (see detected's description) and no method ran at all.
             universal_mac:
               type:
               - string
               - 'null'
-              description: The address actually looked up, i.e. this address with the U/L bit cleared. Null when detected is false.
+              description: The address actually looked up, i.e. this address with the U/L bit cleared. Null for method virtualization_prefix (nothing was unflipped) or when detected is false.
             confidence:
               type: string
               enum:
               - none
               - low
+              - medium
+              - high
+            likelihood_ratio:
+              type:
+              - number
+              - 'null'
+              x-added-in-version: '1.3'
+              description: 'How much more likely this hit is under "a real assignment with the U/L bit set" than under "a uniformly random address that happened to land on an allocated prefix": 2^22 (the universal-unicast 24-bit prefix space) divided by however many distinct 24-bit prefixes the registry currently covers. Deliberately not a posterior probability: that needs a prior on how common derived-vs-randomized locally administered addresses are in the wild, which this API does not have, so apply your own. Null when detected is false or the count isn''t available.
+
+                '
             organization:
               type:
               - string
@@ -547,6 +599,24 @@ components:
               - IAB
               - CID
               - null
+            registry:
+              type:
+              - string
+              - 'null'
+              x-added-in-version: '1.3'
+              enum:
+              - oui
+              - convention
+              - null
+              description: '"oui": matched_prefix came from the IEEE registry via ul_bit_clear. "convention": a virtualization_prefix match with no IEEE registry lookup involved (e.g. Docker''s 02:42, which isn''t an assigned OUI at all).'
+            vendor_class:
+              type:
+              - string
+              - 'null'
+              x-added-in-version: '1.3'
+              description: '"virtualization" for a virtualization_prefix match; "networking_infrastructure" for a ul_bit_clear match whose organization is network equipment (router/switch/wireless AP/firewall) at medium+ device-classification confidence, the vendor class that raises confidence to "medium" (see confidence''s description); otherwise the matched organization''s own device category (e.g. "consumer_electronics"), from the same taxonomy as the top-level device.category field. Null when detected is false.
+
+                '
             lookup_url:
               type:
               - string
@@ -556,7 +626,7 @@ components:
               oneOf:
               - type: 'null'
               - type: object
-                description: enrich device-category inference run against the derived organization; same shape as the top-level device object.
+                description: enrich device-category inference run against the derived organization; same shape as the top-level device object. Null for a virtualization_prefix match (there is no single organization to classify).
                 properties:
                   category:
                     $ref: '#/components/schemas/DeviceCategory'
@@ -581,6 +651,17 @@ components:
               type: array
               items:
                 type: string
+              description: 'Deprecated: use signal_details, which carries the same codes plus a human-readable detail. Kept for existing consumers reading plain strings.'
+            signal_details:
+              type: array
+              x-added-in-version: '1.3'
+              items:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  detail:
+                    type: string
         assignment:
           x-added-in-version: '1.1'
           oneOf:
@@ -644,6 +725,39 @@ components:
               format: date-time
             cached:
               type: boolean
+    ParseErrorBody:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          enum:
+          - false
+        error:
+          type: string
+        request_id:
+          type: string
+  headers:
+    XRateLimitLimit:
+      description: Requests-per-minute cap for the authenticated plan.
+      schema:
+        type: integer
+    XDataVersion:
+      description: Date (UTC) the underlying vendor database last synced successfully. Same value as meta.database_version.
+      schema:
+        type: string
+        format: date
+    XRequestId:
+      description: Per-request identifier, present on every response including errors.
+      schema:
+        type: string
+    XRateLimitRemaining:
+      description: Requests remaining in the current sliding window.
+      schema:
+        type: integer
+    XRateLimitReset:
+      description: Seconds until the current window's usage resets.
+      schema:
+        type: integer
   responses:
     RateLimited:
       description: Requests-per-minute limit exceeded for the authenticated plan
