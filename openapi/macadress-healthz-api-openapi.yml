@@ -56,3 +56,9 @@ components:
 externalDocs:
   description: Full documentation with request/response examples
   url: https://macadress.com/docs
+x-provenance:
+  method: harvested
+  publisher: 'MAC Address Lookup: Find Vendor, OUI & Device Type'
+  source: https://macadress.com/static/openapi.yaml?v=a2b6a80c
+  note: split by refine-openapis from the provider's own published document, verified by fetch (openapi/_original/*.fetch.json);
+    stamped by stamp-openapi-provenance.py (roadmap#793)
